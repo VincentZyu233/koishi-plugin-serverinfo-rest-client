@@ -10,9 +10,8 @@ import {
 import path from 'node:path'
 import fs from 'node:fs'
 
-// 读取客户端版本号
 const pkg = JSON.parse(
-  fs.readFileSync(path.resolve(__dirname, '../../package.json'), 'utf-8')
+  fs.readFileSync(path.resolve(__dirname, '../package.json'), 'utf-8')
 )
 const CLIENT_VERSION = pkg.version
 
