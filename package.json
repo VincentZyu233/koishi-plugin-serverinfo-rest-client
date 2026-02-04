@@ -1,7 +1,7 @@
 {
   "name": "koishi-plugin-serverinfo-rest-client",
-  "description": "对接服务端的 serverinfo-rest-js",
-  "version": "0.0.1",
+  "description": "Minecraft BDS 服务器信息查询 - 对接 serverinfo-rest-js 服务端",
+  "version": "0.0.1-alpha.2+20260204",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
@@ -9,14 +9,30 @@
     "dist"
   ],
   "license": "MIT",
-  "scripts": {},
   "keywords": [
     "chatbot",
     "koishi",
-    "plugin"
+    "plugin",
+    "minecraft",
+    "bds",
+    "serverinfo"
   ],
-  "devDependencies": {},
   "peerDependencies": {
     "koishi": "^4.18.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0"
+  },
+  "koishi": {
+    "service": {
+      "required": [],
+      "optional": [
+        "toImageService",
+        "node"
+      ]
+    },
+    "description": {
+      "zh": "Minecraft BDS 服务器信息查询插件，对接 serverinfo-rest-js 服务端，支持文字和 Typst 图片输出"
+    }
   }
 }
