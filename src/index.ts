@@ -358,7 +358,7 @@ export function apply(ctx: Context, cfg: Config) {
 • mcinfo.players - 玩家列表
 • mcinfo.players-count - 玩家数量
 • mcinfo.players-names - 玩家名列表
-• mcinfo.player <玩家名> - 查询指定玩家
+• mcinfo.player「玩家名」- 查询指定玩家
 
 所有指令支持 --mode (text/image) 参数指定输出模式`)
     })
