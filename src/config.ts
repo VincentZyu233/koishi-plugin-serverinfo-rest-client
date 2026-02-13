@@ -36,6 +36,8 @@ export interface Config {
   // ========== 🧩 Typst 渲染配置 ==========
   /** Typst 字体路径 */
   typstFontPath: string
+  /** Typst 字体族名称 */
+  typstFontFamily: string
   /** Typst 图片渲染倍率（清晰度） */
   typstRenderScale: number
   /** Typst 背景色 */
@@ -196,6 +198,9 @@ export const Config: Schema<Config> = Schema.intersect([
       .default('/home/bawuyinguo/Fonts/LXGWWenKai/LXGWWenKaiMono-Medium.ttf')
       .role('textarea', { rows: [2, 5] })
       .description('🔤 Typst 渲染字体绝对路径（ttf/otf 格式）'),
+    typstFontFamily: Schema.string()
+      .default('LXGW WenKai Mono')
+      .description('🔤 Typst 字体族名称（必须与字体文件中的 family name 一致）'),
     typstRenderScale: Schema.number()
       .default(2.33)
       .min(1)

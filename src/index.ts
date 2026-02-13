@@ -130,6 +130,7 @@ import type { NodeCompiler, NodeAddFontBlobs } from '@myriaddreamin/typst-ts-nod
 import type { Font, FontFormat } from 'koishi-plugin-to-image-service'
 
 export interface TypstTheme {
+  fontFamily: string
   pageBg: string
   textColor: string
   headerFill: string
@@ -152,6 +153,7 @@ function toTypstColor(value: string | undefined, fallback: string): string {
 
 export function buildTypstTheme(cfg: Config): TypstTheme {
   return {
+    fontFamily: cfg.typstFontFamily || 'LXGW WenKai Mono',
     pageBg: toTypstColor(cfg.typstPageBgColor, '#f9efe2'),
     textColor: toTypstColor(cfg.typstTextColor, '#2f2f35'),
     headerFill: toTypstColor(cfg.typstHeaderFillColor, '#5dade2'),
@@ -347,7 +349,7 @@ export function apply(ctx: Context, cfg: Config) {
   // 注册主指令
   ctx.command('mcinfo', 'Minecraft BDS 服务器信息查询')
     .action(async ({ session }) => {
-      return `🎮 Minecraft BDS 服务器信息查询
+      return h.text(`🎮 Minecraft BDS 服务器信息查询
 
 使用以下子指令查询服务器信息：
 • mcinfo.health - 健康检查
@@ -356,9 +358,9 @@ export function apply(ctx: Context, cfg: Config) {
 • mcinfo.players - 玩家列表
 • mcinfo.players-count - 玩家数量
 • mcinfo.players-names - 玩家名列表
-• mcinfo.player <name> - 查询指定玩家
+• mcinfo.player <玩家名> - 查询指定玩家
 
-所有指令支持 --mode <text|image> 参数指定输出模式`
+所有指令支持 --mode (text/image) 参数指定输出模式`)
     })
 
   // 注册子指令

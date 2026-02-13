@@ -323,7 +323,7 @@ function generateTypstCode(player: PlayerResponse, queryName: string, theme: Ret
 )
 
 #set text(
-  font: ("LXGW WenKai Mono", "Noto Sans CJK SC", "Microsoft YaHei"),
+  font: ("${theme.fontFamily}", "Noto Sans CJK SC", "Microsoft YaHei"),
   size: 11pt,
   fill: ${theme.textColor},
   lang: "zh"
@@ -616,7 +616,7 @@ function generateTypstCode(player: PlayerResponse, queryName: string, theme: Ret
 )
 
 #set text(
-  font: ("LXGW WenKai Mono", "Noto Sans CJK SC", "Microsoft YaHei"),
+  font: ("${theme.fontFamily}", "Noto Sans CJK SC", "Microsoft YaHei"),
   size: 11pt,
   fill: ${theme.textColor},
   lang: "zh"
