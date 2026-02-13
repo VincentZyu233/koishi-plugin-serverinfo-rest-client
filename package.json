@@ -21,7 +21,10 @@
     "koishi": "^4.18.7"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0"
+    "@myriaddreamin/typst-ts-node-compiler": "^0.7.0-rc2",
+    "@types/node": "^20.0.0",
+    "koishi-plugin-to-image-service": "^1.6.3",
+    "koishi-plugin-w-node": "^1.1.0"
   },
   "koishi": {
     "service": {
