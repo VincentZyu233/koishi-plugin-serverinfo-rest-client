@@ -253,7 +253,7 @@ export function registerPlayersCommand(
               results.push(h.image(pngBuffer, 'image/png'))
             } catch (err) {
               logger.warn(`Typst 渲染失败: ${err}`)
-              results.push(h.text(`[Typst 渲染失败: ${err.message}]\n\n${formatTextOutput(data, cfg.hidePlayerCoordinates)}`))
+              results.push(h.text(`[Typst 渲染失败: ${err.message}]`))
             }
           }
         }
