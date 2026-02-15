@@ -13,20 +13,20 @@ interface PlayersNamesResponse {
   count: number
 }
 
-function formatTextOutput(data: PlayersNamesResponse): string {
+function formatTextOutput(data: PlayersNamesResponse, label: string): string {
   if (data.count === 0) {
-    return `📝 玩家名列表
+    return `${label} 📝 玩家名列表
 
 当前没有玩家在线`
   }
 
   const nameList = data.names.map((name, i) => `  ${i + 1}. ${name}`).join('\n')
-  return `📝 玩家名列表 (${data.count} 人在线)
+  return `${label} 📝 玩家名列表 (${data.count} 人在线)
 
 ${nameList}`
 }
 
-function generateTypstCode(data: PlayersNamesResponse, theme: ReturnType<typeof buildTypstTheme>): string {
+function generateTypstCode(data: PlayersNamesResponse, theme: ReturnType<typeof buildTypstTheme>, label: string): string {
   const timestamp = new Date().toLocaleString('zh-CN')
 
   if (data.count === 0) {
@@ -53,7 +53,7 @@ function generateTypstCode(data: PlayersNamesResponse, theme: ReturnType<typeof 
     width: 100%
   )[
     #text(size: 16pt, weight: "bold", fill: ${theme.headerText})[
-      📝 玩家名列表
+      ${escapeTypstText(label)} 📝 玩家名列表
     ]
   ]
 ]
@@ -109,7 +109,7 @@ function generateTypstCode(data: PlayersNamesResponse, theme: ReturnType<typeof 
     width: 100%
   )[
     #text(size: 16pt, weight: "bold", fill: ${theme.headerText})[
-      📝 玩家名列表 (${data.count} 人在线)
+      ${escapeTypstText(label)} 📝 玩家名列表 (${data.count} 人在线)
     ]
   ]
 ]
@@ -145,9 +145,11 @@ export function registerPlayersNamesCommand(
   ctx: Context,
   cfg: Config,
   apiClient: ApiClient,
-  logger: any
+  logger: any,
+  prefix: string,
+  label: string
 ) {
-  ctx.command('mcinfo.players-names', '玩家名列表')
+  ctx.command(`${prefix}.players-names`, '玩家名列表')
     .option('mode', '-m <mode:string> 输出模式 (text/image)')
     .action(async ({ session, options }) => {
       try {
@@ -158,12 +160,12 @@ export function registerPlayersNamesCommand(
 
         for (const mode of modes) {
           if (mode === 'text') {
-            results.push(h.text(formatTextOutput(data)))
+            results.push(h.text(formatTextOutput(data, label)))
           } else if (mode === 'typst-image') {
             try {
               const renderer = await getTypstRenderer(ctx, cfg, logger)
               const theme = buildTypstTheme(cfg)
-              const typstCode = generateTypstCode(data, theme)
+              const typstCode = generateTypstCode(data, theme, label)
               const pngBuffer = await renderer.toPng(typstCode, cfg.typstRenderScale)
               results.push(h.image(pngBuffer, 'image/png'))
             } catch (err) {

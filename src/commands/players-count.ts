@@ -12,13 +12,13 @@ interface PlayersCountResponse {
   count: number
 }
 
-function formatTextOutput(data: PlayersCountResponse): string {
-  return `🔢 玩家数量
+function formatTextOutput(data: PlayersCountResponse, label: string): string {
+  return `${label} 🔢 玩家数量
 
 👥 当前在线: ${data.count} 人`
 }
 
-function generateTypstCode(data: PlayersCountResponse, theme: ReturnType<typeof buildTypstTheme>): string {
+function generateTypstCode(data: PlayersCountResponse, theme: ReturnType<typeof buildTypstTheme>, label: string): string {
   const timestamp = new Date().toLocaleString('zh-CN')
 
   return `#set page(
@@ -44,7 +44,7 @@ function generateTypstCode(data: PlayersCountResponse, theme: ReturnType<typeof 
     width: 100%
   )[
     #text(size: 16pt, weight: "bold", fill: ${theme.headerText})[
-      🔢 玩家数量
+      ${escapeTypstText(label)} 🔢 玩家数量
     ]
   ]
 ]
@@ -79,9 +79,11 @@ export function registerPlayersCountCommand(
   ctx: Context,
   cfg: Config,
   apiClient: ApiClient,
-  logger: any
+  logger: any,
+  prefix: string,
+  label: string
 ) {
-  ctx.command('mcinfo.players-count', '玩家数量')
+  ctx.command(`${prefix}.players-count`, '玩家数量')
     .option('mode', '-m <mode:string> 输出模式 (text/image)')
     .action(async ({ session, options }) => {
       try {
@@ -92,12 +94,12 @@ export function registerPlayersCountCommand(
 
         for (const mode of modes) {
           if (mode === 'text') {
-            results.push(h.text(formatTextOutput(data)))
+            results.push(h.text(formatTextOutput(data, label)))
           } else if (mode === 'typst-image') {
             try {
               const renderer = await getTypstRenderer(ctx, cfg, logger)
               const theme = buildTypstTheme(cfg)
-              const typstCode = generateTypstCode(data, theme)
+              const typstCode = generateTypstCode(data, theme, label)
               const pngBuffer = await renderer.toPng(typstCode, cfg.typstRenderScale)
               results.push(h.image(pngBuffer, 'image/png'))
             } catch (err) {

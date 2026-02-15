@@ -24,9 +24,9 @@ interface StatusResponse {
   protocolVersion: number
 }
 
-function formatTextOutput(data: StatusResponse): string {
+function formatTextOutput(data: StatusResponse, label: string): string {
   const statusEmoji = data.status === 'online' ? '🟢' : '🔴'
-  return `📊 服务器状态
+  return `${label} 📊 服务器状态
 
 ${statusEmoji} 状态: ${data.status}
 🔌 服务端插件: ${data.plugin} v${data.version}
@@ -36,7 +36,7 @@ ${statusEmoji} 状态: ${data.status}
 📡 协议版本: ${data.protocolVersion}`
 }
 
-function generateTypstCode(data: StatusResponse, theme: ReturnType<typeof buildTypstTheme>): string {
+function generateTypstCode(data: StatusResponse, theme: ReturnType<typeof buildTypstTheme>, label: string): string {
   const timestamp = new Date().toLocaleString('zh-CN')
   const statusEmoji = data.status === 'online' ? '🟢' : '🔴'
 
@@ -63,7 +63,7 @@ function generateTypstCode(data: StatusResponse, theme: ReturnType<typeof buildT
     width: 100%
   )[
     #text(size: 16pt, weight: "bold", fill: ${theme.headerText})[
-      📊 服务器状态
+      ${escapeTypstText(label)} 📊 服务器状态
     ]
   ]
 ]
@@ -117,9 +117,11 @@ export function registerStatusCommand(
   ctx: Context,
   cfg: Config,
   apiClient: ApiClient,
-  logger: any
+  logger: any,
+  prefix: string,
+  label: string
 ) {
-  ctx.command('mcinfo.status', '服务器状态')
+  ctx.command(`${prefix}.status`, '服务器状态')
     .option('mode', '-m <mode:string> 输出模式 (text/image)')
     .action(async ({ session, options }) => {
       try {
@@ -130,12 +132,12 @@ export function registerStatusCommand(
 
         for (const mode of modes) {
           if (mode === 'text') {
-            results.push(h.text(formatTextOutput(data)))
+            results.push(h.text(formatTextOutput(data, label)))
           } else if (mode === 'typst-image') {
             try {
               const renderer = await getTypstRenderer(ctx, cfg, logger)
               const theme = buildTypstTheme(cfg)
-              const typstCode = generateTypstCode(data, theme)
+              const typstCode = generateTypstCode(data, theme, label)
               const pngBuffer = await renderer.toPng(typstCode, cfg.typstRenderScale)
               results.push(h.image(pngBuffer, 'image/png'))
             } catch (err) {

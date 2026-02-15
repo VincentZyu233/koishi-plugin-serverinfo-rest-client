@@ -142,15 +142,15 @@ function getInputMode(mode: number): string {
   return INPUT_MODE_MAP[mode] || `❓ 未知 (${mode})`
 }
 
-function formatTextOutput(player: PlayerResponse, queryName: string, cfg: Config): string {
+function formatTextOutput(player: PlayerResponse, queryName: string, cfg: Config, label: string): string {
   if (!player || !player.name) {
-    return `👤 玩家查询
+    return `${label} 👤 玩家查询
 
 ❌ 未找到玩家: ${queryName}`
   }
 
   const lines: string[] = []
-  lines.push(`👤 玩家详情: ${player.name}`)
+  lines.push(`${label} 👤 玩家详情: ${player.name}`)
   lines.push('')
 
   // 📋 基本信息
@@ -311,7 +311,7 @@ function formatTextOutput(player: PlayerResponse, queryName: string, cfg: Config
   return lines.join('\n').trimEnd()
 }
 
-function generateTypstCode(player: PlayerResponse, queryName: string, theme: ReturnType<typeof buildTypstTheme>, cfg: Config): string {
+function generateTypstCode(player: PlayerResponse, queryName: string, theme: ReturnType<typeof buildTypstTheme>, cfg: Config, label: string): string {
   const timestamp = new Date().toLocaleString('zh-CN')
 
   if (!player || !player.name) {
@@ -338,7 +338,7 @@ function generateTypstCode(player: PlayerResponse, queryName: string, theme: Ret
     width: 100%
   )[
     #text(size: 16pt, weight: "bold", fill: ${theme.headerText})[
-      👤 玩家查询
+      ${escapeTypstText(label)} 👤 玩家查询
     ]
   ]
 ]
@@ -631,7 +631,7 @@ function generateTypstCode(player: PlayerResponse, queryName: string, theme: Ret
     width: 100%
   )[
     #text(size: 16pt, weight: "bold", fill: ${theme.headerText})[
-      👤 ${escapeTypstText(player.name)}
+      ${escapeTypstText(label)} 👤 ${escapeTypstText(player.name)}
     ]
     ${flags.length > 0 ? `#h(8pt) #text(size: 11pt, fill: ${theme.headerText})[${flags.join(' ')}]` : ''}
   ]
@@ -655,13 +655,15 @@ export function registerPlayerCommand(
   ctx: Context,
   cfg: Config,
   apiClient: ApiClient,
-  logger: any
+  logger: any,
+  prefix: string,
+  label: string
 ) {
-  ctx.command('mcinfo.player <name:string>', '查询指定玩家')
+  ctx.command(`${prefix}.player <name:string>`, '查询指定玩家')
     .option('mode', '-m <mode:string> 输出模式 (text/image)')
     .action(async ({ session, options }, name) => {
       if (!name) {
-        return '❌ 请指定玩家名称，例如: mcinfo.player Steve'
+        return `❌ 请指定玩家名称，例如: ${prefix}.player Steve`
       }
 
       try {
@@ -672,12 +674,12 @@ export function registerPlayerCommand(
 
         for (const mode of modes) {
           if (mode === 'text') {
-            results.push(h.text(formatTextOutput(data, name, cfg)))
+            results.push(h.text(formatTextOutput(data, name, cfg, label)))
           } else if (mode === 'typst-image') {
             try {
               const renderer = await getTypstRenderer(ctx, cfg, logger)
               const theme = buildTypstTheme(cfg)
-              const typstCode = generateTypstCode(data, name, theme, cfg)
+              const typstCode = generateTypstCode(data, name, theme, cfg, label)
               const pngBuffer = await renderer.toPng(typstCode, cfg.typstRenderScale)
               results.push(h.image(pngBuffer, 'image/png'))
             } catch (err) {

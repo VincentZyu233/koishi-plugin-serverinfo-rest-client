@@ -15,8 +15,8 @@ interface HealthResponse {
   uptime: number
 }
 
-function formatTextOutput(data: HealthResponse): string {
-  return `❤️ 健康检查
+function formatTextOutput(data: HealthResponse, label: string): string {
+  return `${label} ❤️ 健康检查
 
 📊 状态: ${data.status === 'healthy' ? '✅ 健康' : '❌ 异常'}
 ⏰ 时间戳: ${formatTimestamp(data.timestamp)}
@@ -40,7 +40,7 @@ function formatUptime(ms: number): string {
   }
 }
 
-function generateTypstCode(data: HealthResponse, theme: ReturnType<typeof buildTypstTheme>): string {
+function generateTypstCode(data: HealthResponse, theme: ReturnType<typeof buildTypstTheme>, label: string): string {
   const timestamp = new Date().toLocaleString('zh-CN')
   const statusEmoji = data.status === 'healthy' ? '✅' : '❌'
   const statusText = data.status === 'healthy' ? '健康' : '异常'
@@ -68,7 +68,7 @@ function generateTypstCode(data: HealthResponse, theme: ReturnType<typeof buildT
     width: 100%
   )[
     #text(size: 16pt, weight: "bold", fill: ${theme.headerText})[
-      ❤️ 健康检查
+      ${escapeTypstText(label)} ❤️ 健康检查
     ]
   ]
 ]
@@ -112,9 +112,11 @@ export function registerHealthCommand(
   ctx: Context,
   cfg: Config,
   apiClient: ApiClient,
-  logger: any
+  logger: any,
+  prefix: string,
+  label: string
 ) {
-  ctx.command('mcinfo.health', '健康检查')
+  ctx.command(`${prefix}.health`, '健康检查')
     .option('mode', '-m <mode:string> 输出模式 (text/image)')
     .action(async ({ session, options }) => {
       try {
@@ -125,12 +127,12 @@ export function registerHealthCommand(
 
         for (const mode of modes) {
           if (mode === 'text') {
-            results.push(h.text(formatTextOutput(data)))
+            results.push(h.text(formatTextOutput(data, label)))
           } else if (mode === 'typst-image') {
             try {
               const renderer = await getTypstRenderer(ctx, cfg, logger)
               const theme = buildTypstTheme(cfg)
-              const typstCode = generateTypstCode(data, theme)
+              const typstCode = generateTypstCode(data, theme, label)
               const pngBuffer = await renderer.toPng(typstCode, cfg.typstRenderScale)
               results.push(h.image(pngBuffer, 'image/png'))
             } catch (err) {

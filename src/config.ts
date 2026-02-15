@@ -9,6 +9,12 @@ export type OutputMode = 'text' | 'typst-image'
  * 插件配置接口
  */
 export interface Config {
+  // ========== 🏷️ 指令与标识配置 ==========
+  /** 指令前缀 */
+  commandPrefix: string
+  /** 服务器名称标记 */
+  serverLabel: string
+
   // ========== 🔌 服务器连接配置 ==========
   /** 服务器 IP 地址 */
   serverIp: string
@@ -78,6 +84,15 @@ function createOutputModeSchema() {
  * 插件配置 Schema
  */
 export const Config: Schema<Config> = Schema.intersect([
+  Schema.object({
+    commandPrefix: Schema.string()
+      .default('mcinfo1')
+      .description('🏷️ 指令前缀（用于区分多实例，如 mcinfo1、mcinfo2）'),
+    serverLabel: Schema.string()
+      .default('【神秘小服服1】')
+      .description('🏷️ 服务器名称标记（显示在所有输出的标题中）'),
+  }).description('🏷️ 指令与标识配置'),
+
   Schema.object({
     serverIp: Schema.string()
       .default('127.0.0.1')
@@ -181,7 +196,7 @@ export const Config: Schema<Config> = Schema.intersect([
         { key: 'device.lastPing', enabled: true },
         { key: 'device.lastPacketLoss', enabled: true },
       ])
-      .description('🔧 玩家信息字段过滤（控制 mcinfo.player 指令显示哪些字段）'),
+      .description('🔧 玩家信息字段过滤（控制 player 子指令显示哪些字段）'),
   }).description('🎯 指令细节设置'),
 
   Schema.object({

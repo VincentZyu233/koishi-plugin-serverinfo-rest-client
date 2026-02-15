@@ -348,29 +348,32 @@ export function apply(ctx: Context, cfg: Config) {
   logger.info(`服务器地址: ${apiClient.getBaseUrl()}`)
   logger.info(`API 地址: ${apiClient.getApiBase()}`)
 
+  const prefix = cfg.commandPrefix || 'mcinfo1'
+  const label = cfg.serverLabel || '【神秘小服服】'
+
   // 注册主指令
-  ctx.command('mcinfo', 'Minecraft BDS 服务器信息查询')
+  ctx.command(prefix, `${label} Minecraft BDS 服务器信息查询`)
     .action(async ({ session }) => {
-      return h.text(`🎮 Minecraft BDS 服务器信息查询
+      return h.text(`🎮 ${label} Minecraft BDS 服务器信息查询
 
 使用以下子指令查询服务器信息：
-• mcinfo.health - 健康检查
-• mcinfo.status - 服务器状态
-• mcinfo.server - 服务器详细信息
-• mcinfo.players - 玩家列表
-• mcinfo.players-count - 玩家数量
-• mcinfo.players-names - 玩家名列表
-• mcinfo.player「玩家名」- 查询指定玩家
+• ${prefix}.health - 健康检查
+• ${prefix}.status - 服务器状态
+• ${prefix}.server - 服务器详细信息
+• ${prefix}.players - 玩家列表
+• ${prefix}.players-count - 玩家数量
+• ${prefix}.players-names - 玩家名列表
+• ${prefix}.player「玩家名」- 查询指定玩家
 
 所有指令支持 --mode (text/image) 参数指定输出模式`)
     })
 
   // 注册子指令
-  registerHealthCommand(ctx, cfg, apiClient, logger)
-  registerStatusCommand(ctx, cfg, apiClient, logger)
-  registerServerCommand(ctx, cfg, apiClient, logger)
-  registerPlayersCommand(ctx, cfg, apiClient, logger)
-  registerPlayersCountCommand(ctx, cfg, apiClient, logger)
-  registerPlayersNamesCommand(ctx, cfg, apiClient, logger)
-  registerPlayerCommand(ctx, cfg, apiClient, logger)
+  registerHealthCommand(ctx, cfg, apiClient, logger, prefix, label)
+  registerStatusCommand(ctx, cfg, apiClient, logger, prefix, label)
+  registerServerCommand(ctx, cfg, apiClient, logger, prefix, label)
+  registerPlayersCommand(ctx, cfg, apiClient, logger, prefix, label)
+  registerPlayersCountCommand(ctx, cfg, apiClient, logger, prefix, label)
+  registerPlayersNamesCommand(ctx, cfg, apiClient, logger, prefix, label)
+  registerPlayerCommand(ctx, cfg, apiClient, logger, prefix, label)
 }

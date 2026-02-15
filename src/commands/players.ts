@@ -78,15 +78,15 @@ ${positionLine}    • 维度: ${getDimension(player.pos.dimId)}
     ${flags.length > 0 ? `• 状态: ${flags.join(' | ')}` : ''}`
 }
 
-function formatTextOutput(data: PlayersResponse, hideCoordinates: boolean): string {
+function formatTextOutput(data: PlayersResponse, hideCoordinates: boolean, label: string): string {
   if (data.count === 0) {
-    return `👥 玩家列表
+    return `${label} 👥 玩家列表
 
 当前没有玩家在线`
   }
 
   const playerTexts = data.players.map(p => formatPlayerText(p, hideCoordinates)).join('\n\n')
-  return `👥 玩家列表 (${data.count} 人在线)
+  return `${label} 👥 玩家列表 (${data.count} 人在线)
 
 ${playerTexts}`
 }
@@ -126,7 +126,7 @@ function generatePlayerTypstBlock(player: PlayerInfo, theme: ReturnType<typeof b
 `
 }
 
-function generateTypstCode(data: PlayersResponse, theme: ReturnType<typeof buildTypstTheme>, hideCoordinates: boolean): string {
+function generateTypstCode(data: PlayersResponse, theme: ReturnType<typeof buildTypstTheme>, hideCoordinates: boolean, label: string): string {
   const timestamp = new Date().toLocaleString('zh-CN')
 
   if (data.count === 0) {
@@ -153,7 +153,7 @@ function generateTypstCode(data: PlayersResponse, theme: ReturnType<typeof build
     width: 100%
   )[
     #text(size: 16pt, weight: "bold", fill: ${theme.headerText})[
-      👥 玩家列表
+      ${escapeTypstText(label)} 👥 玩家列表
     ]
   ]
 ]
@@ -207,7 +207,7 @@ function generateTypstCode(data: PlayersResponse, theme: ReturnType<typeof build
     width: 100%
   )[
     #text(size: 16pt, weight: "bold", fill: ${theme.headerText})[
-      👥 玩家列表 (${data.count} 人在线)
+      ${escapeTypstText(label)} 👥 玩家列表 (${data.count} 人在线)
     ]
   ]
 ]
@@ -230,9 +230,11 @@ export function registerPlayersCommand(
   ctx: Context,
   cfg: Config,
   apiClient: ApiClient,
-  logger: any
+  logger: any,
+  prefix: string,
+  label: string
 ) {
-  ctx.command('mcinfo.players', '玩家列表')
+  ctx.command(`${prefix}.players`, '玩家列表')
     .option('mode', '-m <mode:string> 输出模式 (text/image)')
     .action(async ({ session, options }) => {
       try {
@@ -243,12 +245,12 @@ export function registerPlayersCommand(
 
         for (const mode of modes) {
           if (mode === 'text') {
-            results.push(h.text(formatTextOutput(data, cfg.hidePlayerCoordinates)))
+            results.push(h.text(formatTextOutput(data, cfg.hidePlayerCoordinates, label)))
           } else if (mode === 'typst-image') {
             try {
               const renderer = await getTypstRenderer(ctx, cfg, logger)
               const theme = buildTypstTheme(cfg)
-              const typstCode = generateTypstCode(data, theme, cfg.hidePlayerCoordinates)
+              const typstCode = generateTypstCode(data, theme, cfg.hidePlayerCoordinates, label)
               const pngBuffer = await renderer.toPng(typstCode, cfg.typstRenderScale)
               results.push(h.image(pngBuffer, 'image/png'))
             } catch (err) {

@@ -30,8 +30,8 @@ function getWeatherText(weather: number): string {
   return WEATHER_MAP[weather] || `❓ 未知 (${weather})`
 }
 
-function formatTextOutput(data: ServerResponse): string {
-  return `🖥️ 服务器详细信息
+function formatTextOutput(data: ServerResponse, label: string): string {
+  return `${label} 🖥️ 服务器详细信息
 
 🎮 BDS 版本: ${data.bdsVersion}
 📡 协议版本: ${data.protocolVersion}
@@ -45,7 +45,7 @@ function formatTextOutput(data: ServerResponse): string {
 🌤️ 天气: ${getWeatherText(data.weather)}`
 }
 
-function generateTypstCode(data: ServerResponse, theme: ReturnType<typeof buildTypstTheme>): string {
+function generateTypstCode(data: ServerResponse, theme: ReturnType<typeof buildTypstTheme>, label: string): string {
   const timestamp = new Date().toLocaleString('zh-CN')
 
   return `#set page(
@@ -71,7 +71,7 @@ function generateTypstCode(data: ServerResponse, theme: ReturnType<typeof buildT
     width: 100%
   )[
     #text(size: 16pt, weight: "bold", fill: ${theme.headerText})[
-      🖥️ 服务器详细信息
+      ${escapeTypstText(label)} 🖥️ 服务器详细信息
     ]
   ]
 ]
@@ -147,9 +147,11 @@ export function registerServerCommand(
   ctx: Context,
   cfg: Config,
   apiClient: ApiClient,
-  logger: any
+  logger: any,
+  prefix: string,
+  label: string
 ) {
-  ctx.command('mcinfo.server', '服务器详细信息')
+  ctx.command(`${prefix}.server`, '服务器详细信息')
     .option('mode', '-m <mode:string> 输出模式 (text/image)')
     .action(async ({ session, options }) => {
       try {
@@ -160,12 +162,12 @@ export function registerServerCommand(
 
         for (const mode of modes) {
           if (mode === 'text') {
-            results.push(h.text(formatTextOutput(data)))
+            results.push(h.text(formatTextOutput(data, label)))
           } else if (mode === 'typst-image') {
             try {
               const renderer = await getTypstRenderer(ctx, cfg, logger)
               const theme = buildTypstTheme(cfg)
-              const typstCode = generateTypstCode(data, theme)
+              const typstCode = generateTypstCode(data, theme, label)
               const pngBuffer = await renderer.toPng(typstCode, cfg.typstRenderScale)
               results.push(h.image(pngBuffer, 'image/png'))
             } catch (err) {
