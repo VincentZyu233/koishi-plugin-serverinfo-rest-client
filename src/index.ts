@@ -14,6 +14,8 @@ import fs from 'node:fs'
 
 export const name = 'serverinfo-rest-client'
 
+export const reusable = true; // 声明此插件可重用
+
 export const inject = {
   required: [],
   optional: ['toImageService', 'node'],
