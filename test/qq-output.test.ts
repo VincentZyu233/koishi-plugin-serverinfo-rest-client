@@ -52,7 +52,7 @@ describe('QQ Markdown and keyboard', () => {
     const labels = rows.flatMap(row => row.buttons.map(button => button.render_data.label))
 
     expect(rows.map(row => row.buttons.length)).toEqual([2, 2, 2, 1, 2])
-    expect(labels).toContain('📈 玩家活动')
+    expect(labels).toContain('📈 在线图')
     expect(labels).toContain('👥 玩家列表')
     expect(labels).toContain('📝 玩家名列表')
     expect(labels).toContain('🔗 绑定玩家')

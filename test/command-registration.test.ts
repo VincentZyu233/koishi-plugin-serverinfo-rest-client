@@ -3,6 +3,7 @@ import {
   aliasCommand,
   COMMAND_NAMES,
   commandUsage,
+  PLAYER_ACTIVITY_ADDITIONAL_ALIASES,
   primaryCommand,
   registerCommands,
   resolveCommandScope,
@@ -62,7 +63,12 @@ describe('command registration', () => {
     const [root, ...features] = registrations
     const expected = Object.values(COMMAND_NAMES).map(command => ({
       primary: primaryCommand('mcinfo1', command),
-      aliases: [aliasCommand('mcinfo1', command)],
+      aliases: [
+        aliasCommand('mcinfo1', command),
+        ...(command === COMMAND_NAMES.playerActivity
+          ? PLAYER_ACTIVITY_ADDITIONAL_ALIASES.map(alias => aliasCommand('mcinfo1', alias))
+          : []),
+      ],
     }))
 
     expect(root).toMatchObject({ primary: 'mcinfo1', aliases: [] })
@@ -70,10 +76,12 @@ describe('command registration', () => {
     const help = root.action!({ session: { send } })
     expect(help.attrs.content).toContain('mcinfo1.健康检查 (health-check)')
     expect(help.attrs.content).toContain('mcinfo1.玩家在线详情 <玩家名> (player-details)')
+    expect(help.attrs.content).toContain('mcinfo1.在线图 [yyyyMMdd] [--mode text|image] [--dryrun] (online-chart)')
     expect(send).not.toHaveBeenCalled()
     expect(features.map(({ primary, aliases }) => ({ primary, aliases }))).toEqual(expected)
     expect(new Set(expected.map(({ primary }) => primary)).size).toBe(expected.length)
-    expect(new Set(expected.flatMap(({ aliases }) => aliases)).size).toBe(expected.length)
+    const allAliases = expected.flatMap(({ aliases }) => aliases)
+    expect(new Set(allAliases).size).toBe(allAliases.length)
     Object.values(COMMAND_NAMES).forEach((command, index) => {
       expect(features[index].description).toContain(`（alias：${command.alias}）`)
       expect(features[index].description).toContain(command.emoji)
@@ -89,7 +97,12 @@ describe('command registration', () => {
     const [root, ...features] = registrations
     const expected = Object.values(COMMAND_NAMES).map(command => ({
       primary: primaryCommand('', command),
-      aliases: [aliasCommand('', command)],
+      aliases: [
+        aliasCommand('', command),
+        ...(command === COMMAND_NAMES.playerActivity
+          ? PLAYER_ACTIVITY_ADDITIONAL_ALIASES.map(alias => aliasCommand('', alias))
+          : []),
+      ],
     }))
 
     expect(scope).toEqual({ rootCommand: 'mcinfo2', featurePrefix: '' })

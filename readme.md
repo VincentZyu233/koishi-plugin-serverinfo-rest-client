@@ -43,7 +43,7 @@
 | 普通用户 | `玩家名列表` | `player-names` | `mcinfo1.玩家名列表` | 仅查询在线玩家名称 |
 | 普通用户 | `玩家在线详情` | `player-details` | `mcinfo1.玩家在线详情 <玩家名>` | 查询指定在线玩家的身份、状态、环境、装备和网络质量 |
 | 普通用户 | `历史记录` | `player-history` | `mcinfo1.历史记录 [页码]` | 分页查询历史玩家 |
-| 普通用户 | `玩家活动` | `player-activity` | `mcinfo1.玩家活动 [yyyyMMdd] [--mode text\|image] [--dryrun]` | 查询上海时区单日每小时文字趋势或在线人数折线与进入次数柱形图，日期默认今天 |
+| 普通用户 | `在线图` | `online-chart` | `mcinfo1.在线图 [yyyyMMdd] [--mode text\|image] [--dryrun]` | 查询上海时区单日每小时文字趋势或在线人数折线与进入次数柱形图，日期默认今天 |
 | 普通用户 | `玩家数据统计` | `player-stats` | `mcinfo1.玩家数据统计 [玩家名]` | 默认查询当前账号绑定的玩家，也可公开查询指定玩家的累计统计 |
 | Koishi 权限等级 | `绑定玩家` | `bind-player` | `mcinfo1.绑定玩家 <玩家名>` | 绑定聊天账号与 Xbox 玩家；所需等级由 `whitelistBindingAuthority` 控制 |
 | Koishi 权限等级 | `解绑玩家` | `unbind-player` | `mcinfo1.解绑玩家` | 解除当前聊天账号的唯一玩家绑定 |
@@ -52,7 +52,7 @@
 | 白名单管理员 | `移除白名单` | `remove-whitelist` | `mcinfo1.移除白名单 <玩家名>` | 移除指定玩家的唯一绑定 |
 | 命令管理员 | `执行命令` | `execute-command` | `mcinfo1.执行命令 <命令>` | 执行受权限名单控制的 BDS 命令 |
 
-带 `--mode` 选项的查询指令可通过 `--mode text` 或 `--mode image` 临时覆盖默认输出模式。`玩家活动` 遵循全局 `defaultOutputModes`，文字模式按小时汇总，图片模式生成趋势图；`查在线`、`历史记录` 和 `玩家数据统计` 使用各自固定输出流程。关闭 `useCommandPrefix` 后，功能指令将去掉 `mcinfo1.` 前缀并注册为顶级指令，单独的 `mcinfo1` 主指令仍会保留。
+带 `--mode` 选项的查询指令可通过 `--mode text` 或 `--mode image` 临时覆盖默认输出模式。`在线图` 遵循全局 `defaultOutputModes`，文字模式按小时汇总，图片模式生成趋势图；兼容 `在线折线图`、`在线柱形图`、`玩家活动` 和 `player-activity` alias。`查在线`、`历史记录` 和 `玩家数据统计` 使用各自固定输出流程。关闭 `useCommandPrefix` 后，功能指令将去掉 `mcinfo1.` 前缀并注册为顶级指令，单独的 `mcinfo1` 主指令仍会保留。
 
 ## 配置表格
 
@@ -178,7 +178,7 @@
 <summary><strong>查看 QQ Markdown 与按钮菜单详细说明（点击展开）</strong></summary>
 
 - `按钮菜单 [页码]` 仅支持 `qq` 平台；即使关闭 `qqMarkdownEnabled`，仍可在 `qqKeyboardEnabled` 开启时主动打开菜单。
-- `查在线` 使用 `qqMarkdownKeyboardJson` 自定义键盘；`玩家活动`、`历史记录` 和 `玩家统计` 使用各自动态生成的操作键盘。
+- `查在线` 使用 `qqMarkdownKeyboardJson` 自定义键盘；`在线图`、`历史记录` 和 `玩家统计` 使用各自动态生成的操作键盘。
 - 关闭 `qqMarkdownEnabled` 但开启 `qqKeyboardEnabled` 时，普通图文发送完成后会追加一条仅承载操作按钮的 Markdown 消息。
 - 开启 `qqMarkdownEnabled` 但关闭 `qqMarkdownEmbedImage` 时，先发送普通图片，再发送 Markdown 正文和 Keyboard；第二条消息不重复引用原消息。
 - 普通 QQ 图文固定按照“引用、单张图片、文字”的顺序组装，每条消息最多包含一张图片。
@@ -194,7 +194,7 @@
 </details>
 
 > **📈 玩家活动趋势**
-> `玩家活动 [yyyyMMdd]` 使用服务端持久化数据输出每小时文字趋势或绘制在线人数折线与进入次数柱形图，不依赖 Koishi Database 或浏览器服务。
+> `在线图 [yyyyMMdd]` 使用服务端持久化数据输出每小时文字趋势或绘制在线人数折线与进入次数柱形图，不依赖 Koishi Database 或浏览器服务。
 
 <details>
 <summary><strong>查看玩家活动采集与图表说明（点击展开）</strong></summary>
@@ -204,7 +204,7 @@
 - 文字模式按上海时区自然小时展示有效心跳平均在线、峰值在线和进入次数；过去日期最多 `24` 行，今天只展示已经到达的小时。
 - 图片模式将一分钟数据聚合为五分钟图表点，并生成在线人数折线与进入次数柱形图；没有数据时仍会输出状态图片。
 - `-d`、`--dryrun` 和 `--dry-run` 使用内置确定性演示数据，完全跳过服务端 API；dryrun 只替换数据来源，仍然遵循全局或显式 `--mode`。
-- 查看完整渲染效果可执行 `玩家活动 --dryrun --mode image`；图片、文字和 QQ Markdown 都会标记 `DRY RUN · 内置演示数据`。
+- 查看完整渲染效果可执行 `在线图 --dryrun --mode image`；图片、文字和 QQ Markdown 都会标记 `DRY RUN · 内置演示数据`。
 - 未来日期会提示“暂不支持预知未来”；有效日期没有数据时仍会生成带无数据状态的 Typst 图片。
 - C++ 服务端每个自然分钟保存一次在线人数心跳，并记录每次玩家进入事件；同一玩家反复重连会重复计入进入次数。
 - 玩家活动原始文件由服务端保存在 `player-activity-history/YYYYMMDD.jsonl`，Koishi 不建立第二份数据副本。

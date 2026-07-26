@@ -3,7 +3,7 @@ export const COMMAND_NAMES = {
   healthCheck: { primary: '健康检查', alias: 'health-check', emoji: '❤️' },
   serverOverview: { primary: '查在线', alias: 'server-overview', emoji: '🌐' },
   playerHistory: { primary: '历史记录', alias: 'player-history', emoji: '📚' },
-  playerActivity: { primary: '玩家活动', alias: 'player-activity', emoji: '📈' },
+  playerActivity: { primary: '在线图', alias: 'online-chart', emoji: '📈' },
   playerStatistics: { primary: '玩家数据统计', alias: 'player-stats', emoji: '📊' },
   executeCommand: { primary: '执行命令', alias: 'execute-command', emoji: '🛠️' },
   bindPlayer: { primary: '绑定玩家', alias: 'bind-player', emoji: '🔗' },
@@ -18,6 +18,13 @@ export const COMMAND_NAMES = {
   playerNames: { primary: '玩家名列表', alias: 'player-names', emoji: '📝' },
   playerDetails: { primary: '玩家在线详情', alias: 'player-details', emoji: '👤' },
 } as const
+
+export const PLAYER_ACTIVITY_ADDITIONAL_ALIASES = [
+  '在线折线图',
+  '在线柱形图',
+  '玩家活动',
+  'player-activity',
+] as const
 
 export type CommandName = (typeof COMMAND_NAMES)[keyof typeof COMMAND_NAMES]
 
@@ -44,8 +51,8 @@ export function primaryCommand(prefix: string, command: CommandName): string {
   return scopedCommand(prefix, command.primary)
 }
 
-export function aliasCommand(prefix: string, command: CommandName): string {
-  return scopedCommand(prefix, command.alias)
+export function aliasCommand(prefix: string, command: CommandName | string): string {
+  return scopedCommand(prefix, typeof command === 'string' ? command : command.alias)
 }
 
 export function commandUsage(prefix: string, command: CommandName, argument = ''): string {

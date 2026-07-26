@@ -17,7 +17,7 @@ vi.mock('../src/typst', () => ({
 }))
 
 vi.mock('../src/qq', () => ({
-  buildCommandKeyboard: vi.fn().mockReturnValue({ rows: [] }),
+  buildCommandKeyboard: vi.fn((_config, buttons) => ({ rows: [{ buttons }] })),
   sendRenderedReply: vi.fn().mockResolvedValue('sent'),
 }))
 
@@ -87,6 +87,13 @@ describe('player activity command', () => {
   it('registers mode and all dryrun option aliases', () => {
     const { chain } = createHarness()
 
+    expect(chain.alias.mock.calls.map(([alias]: [string]) => alias)).toEqual([
+      'mcinfo1.online-chart',
+      'mcinfo1.在线折线图',
+      'mcinfo1.在线柱形图',
+      'mcinfo1.玩家活动',
+      'mcinfo1.player-activity',
+    ])
     expect(chain.option).toHaveBeenCalledWith('mode', '-m <mode:string> 输出模式 (text/image)')
     expect(chain.option).toHaveBeenCalledWith(
       'dryrun',
@@ -119,7 +126,8 @@ describe('player activity command', () => {
         title: '测试服 📈 玩家活动', includeText: false,
       }),
     )
-    expect(buildCommandKeyboard).toHaveBeenCalledWith(expect.anything(), expect.any(Array), 3)
+    expect(buildCommandKeyboard).toHaveBeenNthCalledWith(1, expect.anything(), expect.any(Array), 1)
+    expect(buildCommandKeyboard).toHaveBeenNthCalledWith(2, expect.anything(), expect.any(Array), 2)
   }, 30_000)
 
   it('builds previous, refresh, and blocked-future date buttons for today', async () => {
@@ -129,12 +137,17 @@ describe('player activity command', () => {
       const { action } = createHarness(createResponse(false))
       await expect(action({ session: {}, options: {} }, '20260725')).resolves.toBe('sent')
 
-      const buttons = vi.mocked(buildCommandKeyboard).mock.calls[0][1]
-      expect(buttons).toEqual([
-        { label: '◀️ 前一天', command: 'mcinfo1.玩家活动 20260724', style: 1 },
-        { label: '🔄 刷新', command: 'mcinfo1.玩家活动', style: 1 },
-        { label: '❌ 后一天', command: 'mcinfo1.玩家活动 20260726', style: 0 },
+      const refreshButtons = vi.mocked(buildCommandKeyboard).mock.calls[0][1]
+      const navigationButtons = vi.mocked(buildCommandKeyboard).mock.calls[1][1]
+      expect(refreshButtons).toEqual([
+        { label: '🔄 刷新', command: 'mcinfo1.在线图', style: 1 },
       ])
+      expect(navigationButtons).toEqual([
+        { label: '◀️ 前一天', command: 'mcinfo1.在线图 20260724', style: 1 },
+        { label: '❌ 后一天', command: 'mcinfo1.在线图 20260726', style: 0 },
+      ])
+      const keyboard = vi.mocked(sendRenderedReply).mock.calls[0][3].keyboard!
+      expect(keyboard.rows.map(row => row.buttons.length)).toEqual([1, 2])
     } finally {
       vi.useRealTimers()
     }
@@ -154,7 +167,7 @@ describe('player activity command', () => {
     )
     expect(vi.mocked(sendRenderedReply).mock.calls[0][3].text).toContain('00:00-00:59')
     expect(renderTypstTemplate).not.toHaveBeenCalled()
-    expect(buildCommandKeyboard).toHaveBeenCalledOnce()
+    expect(buildCommandKeyboard).toHaveBeenCalledTimes(2)
   })
 
   it('uses global combined mode and includes hourly text with the image', async () => {
@@ -186,7 +199,7 @@ describe('player activity command', () => {
     )
     expect(vi.mocked(sendRenderedReply).mock.calls[0][3].text).toContain('23:00-23:59')
     expect(renderTypstTemplate).not.toHaveBeenCalled()
-    expect(buildCommandKeyboard).toHaveBeenCalledOnce()
+    expect(buildCommandKeyboard).toHaveBeenCalledTimes(2)
   })
 
   it('renders dryrun image data and preserves explicit state in date buttons', async () => {
@@ -210,10 +223,11 @@ describe('player activity command', () => {
         includeText: false,
       }),
     )
-    const buttons = vi.mocked(buildCommandKeyboard).mock.calls[0][1]
-    expect(buttons[0].command).toBe('mcinfo1.玩家活动 20260724 --dryrun --mode image')
-    expect(buttons[1].command).toMatch(/^mcinfo1\.玩家活动 \d{8} --dryrun --mode image$/)
-    expect(buttons[2].command).toBe('mcinfo1.玩家活动 20260726 --dryrun --mode image')
+    const refreshButtons = vi.mocked(buildCommandKeyboard).mock.calls[0][1]
+    const navigationButtons = vi.mocked(buildCommandKeyboard).mock.calls[1][1]
+    expect(refreshButtons[0].command).toBe('mcinfo1.在线图 20260725 --dryrun --mode image')
+    expect(navigationButtons[0].command).toBe('mcinfo1.在线图 20260724 --dryrun --mode image')
+    expect(navigationButtons[1].command).toBe('mcinfo1.在线图 20260726 --dryrun --mode image')
   }, 30_000)
 
   it('keeps rendering the empty-state Typst image when the date has no data', async () => {

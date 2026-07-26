@@ -17,7 +17,13 @@ import { getTypstFontPaths } from '../font'
 import { formatErrorForLog, logInfo } from '../logger'
 import { buildCommandKeyboard, sendRenderedReply } from '../qq'
 import { renderTypstTemplate, resolveOutputModes } from '../typst'
-import { aliasCommand, COMMAND_NAMES, commandDescription, primaryCommand } from './command-names'
+import {
+  aliasCommand,
+  COMMAND_NAMES,
+  commandDescription,
+  PLAYER_ACTIVITY_ADDITIONAL_ALIASES,
+  primaryCommand,
+} from './command-names'
 import type { CommandRegistrationContext } from './types'
 
 export function registerPlayerActivityCommand({
@@ -27,11 +33,15 @@ export function registerPlayerActivityCommand({
   prefix,
 }: CommandRegistrationContext) {
   const activityCommand = primaryCommand(prefix, COMMAND_NAMES.playerActivity)
-  ctx.command(
+  const command = ctx.command(
     `${activityCommand} [date:string]`,
     commandDescription(COMMAND_NAMES.playerActivity, '查询单日在线人数与玩家进入次数趋势'),
   )
-    .alias(aliasCommand(prefix, COMMAND_NAMES.playerActivity))
+  command.alias(aliasCommand(prefix, COMMAND_NAMES.playerActivity))
+  for (const alias of PLAYER_ACTIVITY_ADDITIONAL_ALIASES) {
+    command.alias(aliasCommand(prefix, alias))
+  }
+  command
     .option('mode', '-m <mode:string> 输出模式 (text/image)')
     .option('dryrun', '-d, --dryrun, --dry-run 使用内置演示数据，不请求服务端 API')
     .action(async ({ session, options }, rawDate) => {
@@ -206,17 +216,19 @@ function buildDateKeyboard(
   const previous = shiftActivityDate(date, -1)
   const next = shiftActivityDate(date, 1)
   const nextIsFuture = next > today
-  return buildCommandKeyboard(config, [
+  const refreshKeyboard = buildCommandKeyboard(config, [{
+    label: '🔄 刷新',
+    command: appendCommandState(date === today ? command : `${command} ${date}`, state),
+    style: 1,
+  }], 1)
+  const navigationKeyboard = buildCommandKeyboard(config, [
     { label: '◀️ 前一天', command: appendCommandState(`${command} ${previous}`, state), style: 1 },
-    {
-      label: date === today ? '🔄 刷新' : '📅 今天',
-      command: appendCommandState(date === today ? command : `${command} ${today}`, state),
-      style: 1,
-    },
     {
       label: nextIsFuture ? '❌ 后一天' : '后一天 ▶️',
       command: appendCommandState(`${command} ${next}`, state),
       style: nextIsFuture ? 0 : 1,
     },
-  ], 3)
+  ], 2)
+  if (!refreshKeyboard || !navigationKeyboard) return null
+  return { rows: [...refreshKeyboard.rows, ...navigationKeyboard.rows] }
 }
