@@ -66,7 +66,8 @@ function createHarness(response = createResponse(), configOverrides: Record<stri
   const config = {
     serverLabel: '测试服', enableQuote: false, enableWaitingHint: false,
     defaultOutputModes: ['typst-image'],
-    qqKeyboardEnabled: true, qqMarkdownEnabled: false, typstFontFamily: 'Arial',
+    qqKeyboardEnabled: true, qqMarkdownEnabled: false, qqMarkdownEmbedImage: false,
+    typstFontFamily: 'Arial',
     typstFontPath: '', typstEmojiFontPath: '',
     typstTextColor: '#26332b', typstPanelStrokeColor: '#cbd9ce',
     typstSectionTitleColor: '#2c5e3b', typstStatsTextColor: '#66746b',
@@ -142,13 +143,18 @@ describe('player activity command', () => {
   it('uses global text mode without running ECharts or Typst', async () => {
     const { action, apiClient } = createHarness(createResponse(), { defaultOutputModes: ['text'] })
 
-    const result = await action({ session: {}, options: {} }, '20260725')
+    await expect(action({ session: {}, options: {} }, '20260725')).resolves.toBe('sent')
 
     expect(apiClient.get).toHaveBeenCalledOnce()
-    expect(String(result)).toContain('每小时趋势：')
-    expect(String(result)).toContain('00:00-00:59')
+    expect(sendRenderedReply).toHaveBeenCalledWith(
+      expect.anything(), expect.anything(), expect.anything(), expect.objectContaining({
+        text: expect.stringContaining('每小时趋势：'),
+        keyboard: expect.anything(),
+      }),
+    )
+    expect(vi.mocked(sendRenderedReply).mock.calls[0][3].text).toContain('00:00-00:59')
     expect(renderTypstTemplate).not.toHaveBeenCalled()
-    expect(sendRenderedReply).not.toHaveBeenCalled()
+    expect(buildCommandKeyboard).toHaveBeenCalledOnce()
   })
 
   it('uses global combined mode and includes hourly text with the image', async () => {
@@ -169,13 +175,18 @@ describe('player activity command', () => {
   it('uses dryrun text data without calling the API or image renderer', async () => {
     const { action, apiClient } = createHarness(createResponse(), { defaultOutputModes: ['text'] })
 
-    const result = await action({ session: {}, options: { dryrun: true } }, '20260725')
+    await expect(action({ session: {}, options: { dryrun: true } }, '20260725')).resolves.toBe('sent')
 
     expect(apiClient.get).not.toHaveBeenCalled()
-    expect(String(result)).toContain('DRY RUN · 内置演示数据')
-    expect(String(result)).toContain('23:00-23:59')
+    expect(sendRenderedReply).toHaveBeenCalledWith(
+      expect.anything(), expect.anything(), expect.anything(), expect.objectContaining({
+        text: expect.stringContaining('DRY RUN · 内置演示数据'),
+        keyboard: expect.anything(),
+      }),
+    )
+    expect(vi.mocked(sendRenderedReply).mock.calls[0][3].text).toContain('23:00-23:59')
     expect(renderTypstTemplate).not.toHaveBeenCalled()
-    expect(sendRenderedReply).not.toHaveBeenCalled()
+    expect(buildCommandKeyboard).toHaveBeenCalledOnce()
   })
 
   it('renders dryrun image data and preserves explicit state in date buttons', async () => {

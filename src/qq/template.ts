@@ -5,15 +5,16 @@ import type { ImageDimensions } from './types'
 export function formatQQOnlineMarkdown(
   result: OnlineStatusResult,
   config: Config,
-  imageUrl: string,
-  dimensions: ImageDimensions,
+  imageUrl?: string,
+  dimensions?: ImageDimensions,
 ): string {
   const lines = [
     `# ${escapeMarkdown(config.serverLabel)} 服务器状态`,
-    '',
-    `![服务器状态 #${dimensions.width}px #${dimensions.height}px](${imageUrl})`,
-    '',
   ]
+  if (imageUrl && dimensions) {
+    lines.push('', `![服务器状态 #${dimensions.width}px #${dimensions.height}px](${imageUrl})`)
+  }
+  lines.push('')
 
   if (!result.online || !result.overview) {
     lines.push('## 🔴 服务器离线', '', `> ${escapeMarkdown(result.error || '无法连接服务器')}`)
@@ -46,15 +47,16 @@ export function formatPlainPlayerList(result: OnlineStatusResult, config: Config
 
 export function formatQQRenderedMarkdown(
   title: string,
-  imageUrl: string,
-  dimensions: ImageDimensions,
+  imageUrl?: string,
+  dimensions?: ImageDimensions,
   body = '',
 ): string {
   const lines = [
     `# ${escapeMarkdown(title)}`,
-    '',
-    `![${escapeMarkdown(title)} #${dimensions.width}px #${dimensions.height}px](${imageUrl})`,
   ]
+  if (imageUrl && dimensions) {
+    lines.push('', `![${escapeMarkdown(title)} #${dimensions.width}px #${dimensions.height}px](${imageUrl})`)
+  }
   if (body.trim()) lines.push('', body.trim())
   return lines.join('\n')
 }

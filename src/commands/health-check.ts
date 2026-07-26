@@ -8,7 +8,7 @@ import {
   createTypstFailureOutput,
 } from '../typst'
 import type { CommandRegistrationContext } from './types'
-import { runWithWaitingHint, withQuote } from '../feedback'
+import { runWithWaitingHint, withOrderedQueryReply, withQuote } from '../feedback'
 import { formatErrorForLog, logInfo } from '../logger'
 
 function formatTextOutput(data: HealthResponse, label: string): string {
@@ -85,7 +85,7 @@ export function registerHealthCheckCommand({
           }
         }
 
-        return withQuote(session, config, results)
+        return withOrderedQueryReply(session, config, results)
       } catch (error) {
         logInfo(ctx, config, '[ERROR] 健康检查失败', formatErrorForLog(error))
         return withQuote(session, config, `❌ 健康检查失败: ${error instanceof Error ? error.message : String(error)}`)

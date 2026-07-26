@@ -60,7 +60,21 @@ export function registerPlayerActivityCommand({
                 date: requestedDate.date,
               })
           const text = formatActivityText(config.serverLabel, data, dryrun)
-          if (!wantsImage) return withQuote(session, config, text)
+          const title = dryrun
+            ? `${config.serverLabel} ${COMMAND_NAMES.playerActivity.emoji} 玩家活动 · DRY RUN · 内置演示数据`
+            : `${config.serverLabel} ${COMMAND_NAMES.playerActivity.emoji} 玩家活动`
+          const keyboard = buildDateKeyboard(config, activityCommand, data.date, {
+            dryrun,
+            mode: explicitMode,
+          })
+          if (!wantsImage) {
+            return sendRenderedReply(ctx, session, config, {
+              text,
+              title,
+              markdownBody: formatActivityMarkdown(data, dryrun),
+              keyboard,
+            })
+          }
 
           const buckets = aggregatePlayerActivity(data)
           let chartPng: Buffer | null = null
@@ -87,16 +101,10 @@ export function registerPlayerActivityCommand({
             coverage_text: formatCoverage(data),
             generated_at: formatShanghaiTime(data.generatedAtMs),
           }, chartPng ? [{ path: shadowPath, content: chartPng }] : [])
-          const keyboard = buildDateKeyboard(config, activityCommand, data.date, {
-            dryrun,
-            mode: explicitMode,
-          })
           return sendRenderedReply(ctx, session, config, {
             image,
             text,
-            title: dryrun
-              ? `${config.serverLabel} ${COMMAND_NAMES.playerActivity.emoji} 玩家活动 · DRY RUN · 内置演示数据`
-              : `${config.serverLabel} ${COMMAND_NAMES.playerActivity.emoji} 玩家活动`,
+            title,
             markdownBody: formatActivityMarkdown(data, dryrun),
             keyboard,
             includeText: wantsText,

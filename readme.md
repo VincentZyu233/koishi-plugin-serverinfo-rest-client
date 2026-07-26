@@ -119,16 +119,17 @@
 | `typstSectionTitleColor` | 颜色 | `#2c5e3b` | 小节标题颜色 |
 | `typstStatsTextColor` | 颜色 | `#66746b` | 统计信息文字颜色 |
 
-### 🤖 QQ Markdown 适配配置
+### 🤖 QQ Markdown 与按钮适配配置
 
 | 配置项 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
-| `qqMarkdownEnabled` | 布尔值 | `true` | QQ 查询结果是否使用原生 Markdown 和公网图片；不影响按钮菜单指令 |
+| `qqMarkdownEnabled` | 布尔值 | `true` | QQ 查询结果是否使用原生 Markdown；不影响按钮菜单和独立 Keyboard 消息 |
+| `qqKeyboardEnabled` | 布尔值 | `true` | 是否启用查询键盘和“按钮菜单”指令；独立于 Markdown 开关 |
+| `qqMarkdownEmbedImage` | 布尔值 | `false` | 是否将图片通过公网 URL 嵌入 QQ Markdown；关闭时使用普通 QQ 图片消息 |
 | `publicBaseUrl` | 字符串 | 空 | QQ Markdown 临时图片公网根地址；留空时回退 Koishi `server.selfUrl` |
 | `qqImageCacheTtlMinutes` | 数字 | `15` | QQ Markdown 临时图片保留分钟数，最小值为 `1` |
 | `qqImageCacheMaxFiles` | 数字 | `50` | 每个插件实例最多保留的 QQ Markdown 图片数量，最小值为 `1` |
 | `qqMarkdownMaxPlayers` | 数字 | `50` | QQ Markdown 在线玩家名单最大展示人数，最小值为 `1` |
-| `qqKeyboardEnabled` | 布尔值 | `true` | 是否启用“查在线”附带键盘和“按钮菜单”指令 |
 | `qqMarkdownKeyboardJson` | JSON 字符串 | 内置默认键盘模板 | “查在线”键盘模板，支持 `${commandPrefix}` 和 `${serverLabel}` 变量；按钮菜单不读取此项 |
 
 ### 🛠️ 调试选项
@@ -171,18 +172,22 @@
 </details>
 
 > **⌨️ QQ Markdown 与按钮菜单**
-> `qqMarkdownEnabled` 控制查询结果，`qqKeyboardEnabled` 独立控制按钮功能，两项可以分别开关。
+> `qqMarkdownEnabled` 控制 Markdown 正文，`qqMarkdownEmbedImage` 控制图片是否嵌入 Markdown，`qqKeyboardEnabled` 独立控制按钮功能。
 
 <details>
 <summary><strong>查看 QQ Markdown 与按钮菜单详细说明（点击展开）</strong></summary>
 
 - `按钮菜单 [页码]` 仅支持 `qq` 平台；即使关闭 `qqMarkdownEnabled`，仍可在 `qqKeyboardEnabled` 开启时主动打开菜单。
+- `查在线` 使用 `qqMarkdownKeyboardJson` 自定义键盘；`玩家活动`、`历史记录` 和 `玩家统计` 使用各自动态生成的操作键盘。
+- 关闭 `qqMarkdownEnabled` 但开启 `qqKeyboardEnabled` 时，普通图文发送完成后会追加一条仅承载操作按钮的 Markdown 消息。
+- 开启 `qqMarkdownEnabled` 但关闭 `qqMarkdownEmbedImage` 时，先发送普通图片，再发送 Markdown 正文和 Keyboard；第二条消息不重复引用原消息。
+- 普通 QQ 图文固定按照“引用、单张图片、文字”的顺序组装，每条消息最多包含一张图片。
 - 第 1 页使用两列四行展示八个服务器与概览入口，第 2 页使用两列四行展示七个玩家与账号入口。
 - 添加白名单、查询白名单绑定、移除白名单和执行命令不会出现在普通用户菜单中。
 - 两页底部固定显示上一页和下一页；边界红叉按钮仍可点击，并会提示已经位于第一页或最后一页。
 - 绑定玩家、玩家在线详情和解绑玩家按钮只填入指令，不会立即发送，以便补充参数或避免误触。
 - 关闭功能指令前缀后，功能按钮自动改用顶级指令，根按钮仍使用配置的 `commandPrefix`。
-- QQ Markdown 查询图片先写入 `cache/ll-serverinfo-rest-client/<实例键>/`，再通过 Koishi server 暴露为临时公网 URL。
+- 仅当 `qqMarkdownEnabled` 与 `qqMarkdownEmbedImage` 同时开启时，查询图片才会写入 `cache/ll-serverinfo-rest-client/<实例键>/`，再通过 Koishi server 暴露为临时公网 URL。
 - `publicBaseUrl` 必须能够被 QQ 官方服务器直接访问；推荐使用具有有效证书的 HTTPS 域名和标准 `443` 端口。浏览器可以打开并不保证 QQ 图片代理一定允许抓取。
 - 图片会按照 `qqImageCacheTtlMinutes` 和 `qqImageCacheMaxFiles` 清理，过期或被清理后的旧消息图片可能无法再次加载。
 

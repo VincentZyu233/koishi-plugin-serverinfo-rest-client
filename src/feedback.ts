@@ -18,6 +18,18 @@ export function withQuote(
   return [h.quote(session.messageId!), ...children]
 }
 
+export function withOrderedQueryReply(
+  session: Session,
+  config: Config,
+  content: h.Fragment,
+): h.Fragment {
+  if (session.platform !== 'qq') return withQuote(session, config, content)
+  const children = typeof content === 'string' ? [h.text(content)] : h.normalize(content)
+  const images = children.filter(child => child.type === 'image' || child.type === 'img')
+  const remaining = children.filter(child => child.type !== 'image' && child.type !== 'img')
+  return withQuote(session, config, [...images, ...remaining])
+}
+
 export async function runWithWaitingHint<T>(
   ctx: Context,
   session: Session,

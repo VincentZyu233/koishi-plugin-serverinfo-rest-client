@@ -7,7 +7,7 @@ import {
   createTypstFailureOutput,
 } from '../typst'
 import type { CommandRegistrationContext } from './types'
-import { runWithWaitingHint, withQuote } from '../feedback'
+import { runWithWaitingHint, withOrderedQueryReply, withQuote } from '../feedback'
 import { CLIENT_VERSION } from '../version'
 import { formatErrorForLog, logInfo } from '../logger'
 
@@ -75,7 +75,7 @@ export function registerServerStatusCommand({
           }
         }
 
-        return withQuote(session, config, results)
+        return withOrderedQueryReply(session, config, results)
       } catch (error) {
         logInfo(ctx, config, '[ERROR] 获取服务器状态失败', formatErrorForLog(error))
         return withQuote(session, config, `❌ 获取服务器状态失败: ${error instanceof Error ? error.message : String(error)}`)

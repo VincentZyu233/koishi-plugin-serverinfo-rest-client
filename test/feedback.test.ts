@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { h } from 'koishi'
-import { runWithWaitingHint, WAITING_HINT_TEXT, withQuote } from '../src/feedback'
+import { runWithWaitingHint, WAITING_HINT_TEXT, withOrderedQueryReply, withQuote } from '../src/feedback'
 
 function createHarness(configOverrides: Record<string, unknown> = {}) {
   const info = vi.fn()
@@ -32,6 +32,17 @@ describe('command feedback', () => {
 
     const disabled = createHarness({ enableQuote: false })
     expect(withQuote(disabled.session, disabled.config, '处理完成')).toBe('处理完成')
+  })
+
+  it('orders QQ query replies as quote, image, then text', () => {
+    const harness = createHarness()
+    harness.session.platform = 'qq'
+    const reply = withOrderedQueryReply(harness.session, harness.config, [
+      h.text('查询结果'),
+      h.image(Buffer.from('png'), 'image/png'),
+    ]) as any
+
+    expect(h.normalize(reply).map(element => element.type)).toEqual(['quote', 'image', 'text'])
   })
 
   it('immediately sends and then deletes the waiting hint', async () => {

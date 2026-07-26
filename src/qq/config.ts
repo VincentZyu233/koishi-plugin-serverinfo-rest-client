@@ -3,11 +3,12 @@ import { DEFAULT_QQ_KEYBOARD, stringifyKeyboard } from './keyboard'
 
 export interface QQConfig {
   qqMarkdownEnabled: boolean
+  qqKeyboardEnabled: boolean
+  qqMarkdownEmbedImage: boolean
   publicBaseUrl: string
   qqImageCacheTtlMinutes: number
   qqImageCacheMaxFiles: number
   qqMarkdownMaxPlayers: number
-  qqKeyboardEnabled: boolean
   qqMarkdownKeyboardJson: string
 }
 
@@ -15,7 +16,13 @@ export function createQQConfigSchema(): Schema<QQConfig> {
   return Schema.object({
     qqMarkdownEnabled: Schema.boolean()
       .default(true)
-      .description('🤖 QQ 查询结果使用原生 Markdown，并通过 server 服务提供状态图片；不影响按钮菜单指令'),
+      .description('🤖 QQ 查询结果是否使用原生 Markdown；不影响按钮菜单和独立 Keyboard 消息'),
+    qqKeyboardEnabled: Schema.boolean()
+      .default(true)
+      .description('⌨️ 是否启用 QQ 按钮；独立于 Markdown 开关，控制查询键盘和按钮菜单指令'),
+    qqMarkdownEmbedImage: Schema.boolean()
+      .default(false)
+      .description('🖼️ QQ Markdown 是否通过公网 URL 嵌入图片；关闭时图片改用普通 QQ 图片消息发送'),
     publicBaseUrl: Schema.string()
       .default('')
       .role('textarea', { rows: [2, 4] })
@@ -35,12 +42,9 @@ export function createQQConfigSchema(): Schema<QQConfig> {
       .step(1)
       .default(50)
       .description('👥 QQ Markdown 在线玩家名单最大展示数量'),
-    qqKeyboardEnabled: Schema.boolean()
-      .default(true)
-      .description('⌨️ 是否启用 QQ 按钮；控制查在线附带键盘和按钮菜单指令'),
     qqMarkdownKeyboardJson: Schema.string()
       .role('textarea', { rows: [8, 16] })
       .default(stringifyKeyboard(DEFAULT_QQ_KEYBOARD))
       .description('⌨️ 查在线回复附带的 QQ Keyboard JSON，支持 ${commandPrefix} 和 ${serverLabel} 变量；按钮菜单使用内置分页布局，不读取此项'),
-  }).description('🤖 QQ Markdown 适配')
+  }).description('🤖 QQ Markdown 与按钮适配')
 }
