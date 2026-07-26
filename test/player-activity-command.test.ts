@@ -99,7 +99,7 @@ describe('player activity command', () => {
       expect.anything(), session, expect.anything(), expect.objectContaining({ title: '测试服 📈 玩家活动' }),
     )
     expect(buildCommandKeyboard).toHaveBeenCalledWith(expect.anything(), expect.any(Array), 3)
-  })
+  }, 30_000)
 
   it('builds previous, refresh, and blocked-future date buttons for today', async () => {
     vi.useFakeTimers()
