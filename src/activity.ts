@@ -17,6 +17,7 @@ echarts.use([
 
 const SHANGHAI_OFFSET_MS = 8 * 60 * 60 * 1000
 const DAY_MS = 24 * 60 * 60 * 1000
+const HOUR_MS = 60 * 60 * 1000
 const CHART_BUCKET_MINUTES = 5
 
 export type ActivityDateErrorCode = 'invalid_date' | 'future_date'
@@ -38,6 +39,15 @@ export interface ActivityChartBucket {
   label: string
   onlineCount: number | null
   joinCount: number | null
+}
+
+export interface ActivityHourlyBucket {
+  timestampMs: number
+  label: string
+  averageOnlineCount: number | null
+  peakOnlineCount: number | null
+  joinCount: number
+  validHeartbeatCount: number
 }
 
 export function formatShanghaiDate(timestampMs: number): string {
@@ -134,6 +144,120 @@ export function aggregatePlayerActivity(
       : null,
     joinCount: bucket.observed ? bucket.joinCount : null,
   }))
+}
+
+export function aggregatePlayerActivityHourly(data: PlayerActivityResponse): ActivityHourlyBucket[] {
+  const rangeMs = Math.max(0, Math.min(data.endAtMs, data.dayEndAtMs) - data.startAtMs)
+  const bucketCount = Math.min(24, Math.max(1, Math.ceil(rangeMs / HOUR_MS)))
+  const buckets = Array.from({ length: bucketCount }, (_, index) => ({
+    timestampMs: data.startAtMs + index * HOUR_MS,
+    onlineTotal: 0,
+    onlineSamples: 0,
+    peakOnlineCount: null as number | null,
+    joinCount: 0,
+  }))
+
+  for (const minute of data.minutes) {
+    const index = Math.floor((minute.timestampMs - data.startAtMs) / HOUR_MS)
+    if (index < 0 || index >= buckets.length) continue
+    const bucket = buckets[index]
+    if (minute.onlineCount !== null && Number.isFinite(minute.onlineCount)) {
+      bucket.onlineTotal += minute.onlineCount
+      bucket.onlineSamples += 1
+      bucket.peakOnlineCount = bucket.peakOnlineCount === null
+        ? minute.onlineCount
+        : Math.max(bucket.peakOnlineCount, minute.onlineCount)
+    }
+    if (Number.isFinite(minute.joinCount) && minute.joinCount > 0) {
+      bucket.joinCount += minute.joinCount
+    }
+  }
+
+  return buckets.map((bucket, index) => ({
+    timestampMs: bucket.timestampMs,
+    label: `${String(index).padStart(2, '0')}:00-${String(index).padStart(2, '0')}:59`,
+    averageOnlineCount: bucket.onlineSamples
+      ? Math.round(bucket.onlineTotal / bucket.onlineSamples * 10) / 10
+      : null,
+    peakOnlineCount: bucket.peakOnlineCount,
+    joinCount: bucket.joinCount,
+    validHeartbeatCount: bucket.onlineSamples,
+  }))
+}
+
+export function createPlayerActivityDryrunResponse(
+  day: ResolvedActivityDate,
+  generatedAtMs = Date.now(),
+): PlayerActivityResponse {
+  const minutes: PlayerActivityResponse['minutes'] = []
+  let latestOnlineCount: number | null = null
+  let peakOnlineCount = 0
+  let onlineTotal = 0
+  let validHeartbeatCount = 0
+  let totalJoinCount = 0
+  let peakJoinCount = 0
+  let peakJoinMinuteMs: number | null = null
+  let coverageStartMs: number | null = null
+  let coverageEndMs: number | null = null
+
+  for (let minuteOfDay = 0; minuteOfDay < 24 * 60; minuteOfDay += 1) {
+    const timestampMs = day.startAtMs + minuteOfDay * 60_000
+    const missingHeartbeat = (minuteOfDay >= 250 && minuteOfDay < 295)
+      || (minuteOfDay >= 920 && minuteOfDay < 970)
+    const dailyWave = Math.sin((minuteOfDay - 360) / 1440 * Math.PI * 2)
+    const shortWave = Math.sin(minuteOfDay / 95 * Math.PI * 2)
+    const onlineCount = Math.max(0, Math.round(4.5 + dailyWave * 3 + shortWave * 1.4))
+    const joinCount = minuteOfDay % 173 === 20
+      ? 2
+      : minuteOfDay % 97 === 10 ? 1 : 0
+
+    if (!missingHeartbeat) {
+      latestOnlineCount = onlineCount
+      peakOnlineCount = Math.max(peakOnlineCount, onlineCount)
+      onlineTotal += onlineCount
+      validHeartbeatCount += 1
+    }
+    totalJoinCount += joinCount
+    if (joinCount > peakJoinCount) {
+      peakJoinCount = joinCount
+      peakJoinMinuteMs = timestampMs
+    }
+    if (!missingHeartbeat || joinCount > 0) {
+      coverageStartMs ??= timestampMs
+      coverageEndMs = timestampMs
+    }
+    minutes.push({
+      timestampMs,
+      onlineCount: missingHeartbeat ? null : onlineCount,
+      joinCount,
+    })
+  }
+
+  return {
+    date: day.date,
+    timezone: 'Asia/Shanghai',
+    startAtMs: day.startAtMs,
+    endAtMs: day.endAtMs,
+    dayEndAtMs: day.endAtMs,
+    generatedAtMs,
+    sampleIntervalSeconds: 60,
+    complete: true,
+    hasData: minutes.length > 0,
+    discardedRecordCount: 0,
+    summary: {
+      latestOnlineCount,
+      peakOnlineCount,
+      averageOnlineCount: validHeartbeatCount ? onlineTotal / validHeartbeatCount : 0,
+      totalJoinCount,
+      uniquePlayerCount: Math.min(12, totalJoinCount),
+      peakJoinCount,
+      peakJoinMinuteMs,
+      validHeartbeatCount,
+      coverageStartMs,
+      coverageEndMs,
+    },
+    minutes,
+  }
 }
 
 export function renderPlayerActivityChart(

@@ -140,6 +140,8 @@ describe('TypstRenderer', () => {
       ], templateConfig)
       const activityPng = await renderer.toTemplatePng('playerActivity', {
         ...payloads.playerActivity,
+        label: '测试服 [DRY RUN]',
+        date_display: '2026年07月25日 · 内置演示数据',
         chart_available: true,
         chart_path: '../charts/test-activity.png',
       }, 1, [{ path: 'charts/test-activity.png', content: chartPng }])

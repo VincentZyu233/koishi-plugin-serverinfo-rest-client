@@ -3,6 +3,8 @@ import type { PlayerActivityResponse } from '../src/api/types'
 import {
   ActivityDateError,
   aggregatePlayerActivity,
+  aggregatePlayerActivityHourly,
+  createPlayerActivityDryrunResponse,
   formatShanghaiDate,
   renderPlayerActivityChart,
   resolveActivityDate,
@@ -62,6 +64,44 @@ describe('player activity data', () => {
     expect(buckets[1]).toMatchObject({ label: '00:05', onlineCount: null, joinCount: null })
     expect(buckets[2]).toMatchObject({ label: '00:10', onlineCount: null, joinCount: null })
     expect(buckets[3]).toMatchObject({ label: '00:15', onlineCount: 4, joinCount: 0 })
+  })
+
+  it('aggregates bounded hourly text statistics from raw minute samples', () => {
+    const data = createResponse()
+    data.endAtMs = data.startAtMs + 2 * 60 * 60_000
+    data.minutes = [
+      { timestampMs: data.startAtMs, onlineCount: 1, joinCount: 1 },
+      { timestampMs: data.startAtMs + 30 * 60_000, onlineCount: 3, joinCount: 2 },
+      { timestampMs: data.startAtMs + 60 * 60_000, onlineCount: 4, joinCount: 0 },
+      { timestampMs: data.startAtMs + 90 * 60_000, onlineCount: null, joinCount: 2 },
+    ]
+
+    const buckets = aggregatePlayerActivityHourly(data)
+    expect(buckets).toHaveLength(2)
+    expect(buckets[0]).toMatchObject({
+      label: '00:00-00:59', averageOnlineCount: 2, peakOnlineCount: 3,
+      joinCount: 3, validHeartbeatCount: 2,
+    })
+    expect(buckets[1]).toMatchObject({
+      label: '01:00-01:59', averageOnlineCount: 4, peakOnlineCount: 4,
+      joinCount: 2, validHeartbeatCount: 1,
+    })
+  })
+
+  it('creates deterministic full-day dryrun data with heartbeat gaps', () => {
+    const day = resolveActivityDate('20260725', Date.UTC(2026, 6, 26, 12))
+    const generatedAtMs = Date.UTC(2026, 6, 26, 12)
+    const first = createPlayerActivityDryrunResponse(day, generatedAtMs)
+    const second = createPlayerActivityDryrunResponse(day, generatedAtMs)
+
+    expect(second).toEqual(first)
+    expect(first.endAtMs).toBe(day.endAtMs)
+    expect(first.complete).toBe(true)
+    expect(first.minutes.length).toBeGreaterThan(1_300)
+    expect(first.minutes.some(minute => minute.onlineCount === null)).toBe(true)
+    expect(first.summary.validHeartbeatCount).toBeLessThan(1_440)
+    expect(first.summary.totalJoinCount).toBeGreaterThan(0)
+    expect(aggregatePlayerActivityHourly(first)).toHaveLength(24)
   })
 
   it('renders a deterministic SVG with line and bar series', () => {

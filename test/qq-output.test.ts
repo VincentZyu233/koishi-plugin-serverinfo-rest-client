@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { buildQQKeyboard } from '../src/qq/keyboard'
 import { buildQQButtonMenu } from '../src/qq/menu'
 import { sendQQMarkdown } from '../src/qq/markdown'
+import { sendRenderedReply } from '../src/qq/sender'
 import { formatQQOnlineMarkdown } from '../src/qq/template'
 import { CLIENT_VERSION } from '../src/version'
 
@@ -125,5 +126,20 @@ describe('QQ Markdown and keyboard', () => {
     const session = { bot: { config: { autoStreamText: true } }, send } as any
     await sendQQMarkdown(ctx, config, session, '# status', 'status', buildQQKeyboard(config))
     expect(send).toHaveBeenCalledOnce()
+  })
+
+  it('omits fallback text when a rendered reply requests image-only output', async () => {
+    const output = await sendRenderedReply(ctx, { platform: 'discord' } as any, {
+      ...config,
+      enableQuote: false,
+      qqMarkdownEnabled: false,
+    }, {
+      image: Buffer.from('png'),
+      text: '不应发送的文字',
+      title: '图片模式',
+      includeText: false,
+    }) as any
+
+    expect(output.children.map((child: any) => child.type)).toEqual(['image'])
   })
 })

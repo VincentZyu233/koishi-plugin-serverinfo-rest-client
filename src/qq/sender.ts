@@ -16,6 +16,7 @@ export interface RenderedReplyOptions {
   title: string
   markdownBody?: string
   keyboard?: QQKeyboard | null
+  includeText?: boolean
 }
 
 export async function sendRenderedReply(
@@ -48,10 +49,9 @@ export async function sendRenderedReply(
     }
   }
 
-  return withQuote(session, config, h('', [
-    h.image(options.image, 'image/png'),
-    h.text(options.text),
-  ]))
+  const children = [h.image(options.image, 'image/png')]
+  if (options.includeText !== false) children.push(h.text(options.text))
+  return withQuote(session, config, h('', children))
 }
 
 export async function sendOnlineStatus(

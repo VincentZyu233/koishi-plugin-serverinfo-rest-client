@@ -12,7 +12,7 @@ export function registerRootCommand({ ctx, config, rootCommand, prefix, label }:
 • ${commandUsage(prefix, COMMAND_NAMES.healthCheck)} - 健康检查
 • ${commandUsage(prefix, COMMAND_NAMES.serverOverview)} - 查询服务器在线状态
 • ${commandUsage(prefix, COMMAND_NAMES.playerHistory, '[页码]')} - 查询历史玩家
-• ${commandUsage(prefix, COMMAND_NAMES.playerActivity, '[yyyyMMdd]')} - 查询在线人数与玩家进入次数趋势
+• ${commandUsage(prefix, COMMAND_NAMES.playerActivity, '[yyyyMMdd] [--mode text|image] [--dryrun]')} - 查询或预览在线人数与玩家进入次数趋势
 • ${commandUsage(prefix, COMMAND_NAMES.playerStatistics, '[玩家名]')} - 查询自己或指定玩家的历史游玩与统计数据
 • ${commandUsage(prefix, COMMAND_NAMES.bindPlayer, '<玩家名>')} - 绑定聊天账号与 Xbox 玩家；服务端启用 BDS allowlist 同步时同时更新进服名单
 • ${commandUsage(prefix, COMMAND_NAMES.unbindPlayer)} - 解除当前账号的唯一绑定；服务端启用同步时同时移除 BDS allowlist 项目
@@ -27,5 +27,5 @@ export function registerRootCommand({ ctx, config, rootCommand, prefix, label }:
 • ${commandUsage(prefix, COMMAND_NAMES.playerNames)} - 玩家名列表
 • ${commandUsage(prefix, COMMAND_NAMES.playerDetails, '<玩家名>')} - 查询在线玩家的实时状态与详情
 
-带 --mode 选项的查询指令可指定 text/image 输出；玩家活动固定生成图表图片并附带文字摘要`)))
+带 --mode 选项的查询指令可指定 text/image 输出；玩家活动遵循全局 defaultOutputModes，并可通过 --dryrun 使用内置演示数据`)))
 }
