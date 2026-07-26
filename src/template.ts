@@ -16,6 +16,7 @@ export const TEMPLATE_ENTRIES = {
   healthStatus: 'health-status.typ',
   onlineStatus: 'online-status.typ',
   playerHistory: 'player-history.typ',
+  playerActivity: 'player-activity.typ',
   playerStats: 'player-stats.typ',
   playerDetail: 'player-detail.typ',
   playersList: 'players-list.typ',

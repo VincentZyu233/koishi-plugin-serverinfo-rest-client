@@ -43,7 +43,11 @@ function collectRegistrations(commandPrefix: string, useCommandPrefix = true) {
   const scope = resolveCommandScope(commandPrefix, useCommandPrefix)
   registerCommands({
     ctx,
-    config: { whitelistBindingAuthority: 1 } as any,
+    config: {
+      whitelistBindingAuthority: 1,
+      enableQuote: false,
+      enableWaitingHint: true,
+    } as any,
     apiClient: {} as any,
     rootCommand: scope.rootCommand,
     prefix: scope.featurePrefix,
@@ -62,9 +66,11 @@ describe('command registration', () => {
     }))
 
     expect(root).toMatchObject({ primary: 'mcinfo1', aliases: [] })
-    const help = root.action!()
+    const send = vi.fn()
+    const help = root.action!({ session: { send } })
     expect(help.attrs.content).toContain('mcinfo1.健康检查 (health-check)')
     expect(help.attrs.content).toContain('mcinfo1.玩家在线详情 <玩家名> (player-details)')
+    expect(send).not.toHaveBeenCalled()
     expect(features.map(({ primary, aliases }) => ({ primary, aliases }))).toEqual(expected)
     expect(new Set(expected.map(({ primary }) => primary)).size).toBe(expected.length)
     expect(new Set(expected.flatMap(({ aliases }) => aliases)).size).toBe(expected.length)

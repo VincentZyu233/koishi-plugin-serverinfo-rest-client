@@ -4,6 +4,7 @@ import { renderTypstTemplate } from '../typst'
 import { buildCommandKeyboard, escapeMarkdown, sendRenderedReply } from '../qq'
 import { aliasCommand, COMMAND_NAMES, commandDescription, primaryCommand } from './command-names'
 import type { CommandRegistrationContext } from './types'
+import { runWithWaitingHint, withQuote } from '../feedback'
 import { formatErrorForLog, logInfo } from '../logger'
 
 export function registerPlayerHistoryCommand({
@@ -20,43 +21,45 @@ export function registerPlayerHistoryCommand({
     .alias(aliasCommand(prefix, COMMAND_NAMES.playerHistory))
     .action(async ({ session }, requestedPage) => {
       const page = Math.max(1, Math.floor(Number(requestedPage) || 1))
-      try {
-        const data = await apiClient.get<PlayerHistoryResponse>('/players/history', {
-          page: String(page),
-          pageSize: String(config.historyPageSize),
-        })
-        const image = await renderTypstTemplate(ctx, config, 'playerHistory', {
-          label: config.serverLabel,
-          total: data.total,
-          page: data.page,
-          page_count: data.pageCount,
-          players: data.players.map((player, index) => ({
-            number: (data.page - 1) * data.pageSize + index + 1,
-            name: player.name,
-            total_play: formatDuration(player.totalPlayMs),
-            last_seen: formatDate(player.lastSeenMs),
-          })),
-        })
-        const text = formatHistoryText(config, data)
-        const buttons = []
-        if (data.page > 1) {
-          buttons.push({ label: '上一页', command: `${historyCommand} ${data.page - 1}` })
+      return runWithWaitingHint(ctx, session, config, async () => {
+        try {
+          const data = await apiClient.get<PlayerHistoryResponse>('/players/history', {
+            page: String(page),
+            pageSize: String(config.historyPageSize),
+          })
+          const image = await renderTypstTemplate(ctx, config, 'playerHistory', {
+            label: config.serverLabel,
+            total: data.total,
+            page: data.page,
+            page_count: data.pageCount,
+            players: data.players.map((player, index) => ({
+              number: (data.page - 1) * data.pageSize + index + 1,
+              name: player.name,
+              total_play: formatDuration(player.totalPlayMs),
+              last_seen: formatDate(player.lastSeenMs),
+            })),
+          })
+          const text = formatHistoryText(config, data)
+          const buttons = []
+          if (data.page > 1) {
+            buttons.push({ label: '上一页', command: `${historyCommand} ${data.page - 1}` })
+          }
+          buttons.push({ label: '刷新', command: `${historyCommand} ${data.page}`, style: 1 })
+          if (data.page < data.pageCount) {
+            buttons.push({ label: '下一页', command: `${historyCommand} ${data.page + 1}` })
+          }
+          return sendRenderedReply(ctx, session, config, {
+            image,
+            text,
+            title: `${config.serverLabel} ${COMMAND_NAMES.playerHistory.emoji} 历史玩家`,
+            markdownBody: formatHistoryMarkdown(data),
+            keyboard: buildCommandKeyboard(config, buttons),
+          })
+        } catch (error) {
+          logInfo(ctx, config, '[ERROR] 查询历史记录失败', formatErrorForLog(error))
+          return withQuote(session, config, `查询历史记录失败：${error instanceof Error ? error.message : String(error)}`)
         }
-        buttons.push({ label: '刷新', command: `${historyCommand} ${data.page}`, style: 1 })
-        if (data.page < data.pageCount) {
-          buttons.push({ label: '下一页', command: `${historyCommand} ${data.page + 1}` })
-        }
-        return sendRenderedReply(ctx, session, config, {
-          image,
-          text,
-          title: `${config.serverLabel} ${COMMAND_NAMES.playerHistory.emoji} 历史玩家`,
-          markdownBody: formatHistoryMarkdown(data),
-          keyboard: buildCommandKeyboard(config, buttons),
-        })
-      } catch (error) {
-        logInfo(ctx, config, '[ERROR] 查询历史记录失败', formatErrorForLog(error))
-        return `查询历史记录失败：${error instanceof Error ? error.message : String(error)}`
-      }
+      })
     })
 }
 

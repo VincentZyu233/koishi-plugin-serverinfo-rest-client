@@ -1,8 +1,9 @@
 import type { WhitelistBindingResponse } from '../../api/types'
+import { runWithWaitingHint, withQuote } from '../../feedback'
 import { aliasCommand, COMMAND_NAMES, commandDescription, primaryCommand } from '../command-names'
 import type { CommandRegistrationContext } from '../types'
 import { formatErrorForLog, logInfo } from '../../logger'
-import { formatAllowlistResult, getSelfId, quoteIfNeeded } from './shared'
+import { formatAllowlistResult, getSelfId } from './shared'
 
 export function registerUnbindPlayerCommand({
   ctx,
@@ -18,20 +19,22 @@ export function registerUnbindPlayerCommand({
   )
     .alias(aliasCommand(prefix, COMMAND_NAMES.unbindPlayer))
     .action(async ({ session }) => {
-      if (config.whitelistUnbindGroupOnly && session.isDirect) return '解绑玩家只能在群聊中使用'
-      if (!config.adminToken) return '尚未配置管理 API 令牌，无法解绑玩家'
+      if (config.whitelistUnbindGroupOnly && session.isDirect) return withQuote(session, config, '解绑玩家只能在群聊中使用')
+      if (!config.adminToken) return withQuote(session, config, '尚未配置管理 API 令牌，无法解绑玩家')
       const selfId = getSelfId(session)
-      if (!selfId) return '无法识别当前 Bot 的 selfId，请检查适配器会话信息'
-      try {
-        const data = await apiClient.post<WhitelistBindingResponse>('/whitelist/unbind', {
-          platform: session.platform,
-          selfId,
-          userId: session.userId,
-        }, true)
-        return quoteIfNeeded(session, config, `已解除与 ${data.binding.playerName} 的玩家绑定${formatAllowlistResult(data)}`)
-      } catch (error) {
-        logInfo(ctx, config, '[ERROR] 解绑玩家失败', formatErrorForLog(error))
-        return `解绑玩家失败：${error instanceof Error ? error.message : String(error)}`
-      }
+      if (!selfId) return withQuote(session, config, '无法识别当前 Bot 的 selfId，请检查适配器会话信息')
+      return runWithWaitingHint(ctx, session, config, async () => {
+        try {
+          const data = await apiClient.post<WhitelistBindingResponse>('/whitelist/unbind', {
+            platform: session.platform,
+            selfId,
+            userId: session.userId,
+          }, true)
+          return withQuote(session, config, `已解除与 ${data.binding.playerName} 的玩家绑定${formatAllowlistResult(data)}`)
+        } catch (error) {
+          logInfo(ctx, config, '[ERROR] 解绑玩家失败', formatErrorForLog(error))
+          return withQuote(session, config, `解绑玩家失败：${error instanceof Error ? error.message : String(error)}`)
+        }
+      })
     })
 }

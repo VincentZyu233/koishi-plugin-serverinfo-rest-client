@@ -1,5 +1,6 @@
 import { h, type Context, type Session } from 'koishi'
 import type { Config } from '../config'
+import { shouldQuote, withQuote } from '../feedback'
 import { logInfo } from '../logger'
 import type { QQKeyboard } from './types'
 
@@ -13,10 +14,11 @@ export async function sendQQMarkdown(
 ) {
   const bot = session.bot as any
   if (bot.config?.autoStreamText) {
-    await session.send(h('qq:rawmarkdown', {
+    const content = h('qq:rawmarkdown', {
       content: markdown,
       ...(keyboard ? { keyboard } : {}),
-    }))
+    })
+    await session.send(withQuote(session, config, content))
     if (config.verboseConsoleLog) {
       logInfo(ctx, config, 'QQ Markdown 消息发送成功', `适配器: qq-crack\n平台: ${session.platform}\n频道: ${session.channelId}`)
     }
@@ -29,9 +31,10 @@ export async function sendQQMarkdown(
     markdown: { content: markdown },
   }
   if (keyboard?.rows?.length) payload.keyboard = { content: keyboard }
-  if (session.messageId && Date.now() - (session.timestamp || Date.now()) < 300_000) {
+  if (shouldQuote(session, config) && Date.now() - (session.timestamp || Date.now()) < 300_000) {
     payload.msg_id = session.messageId
     payload.msg_seq = Math.floor(Math.random() * 0xffffff) + 1
+    payload.message_reference = { message_id: session.messageId }
   }
 
   if (!bot.internal) throw new Error('当前 QQ 适配器未暴露 internal 发送接口')

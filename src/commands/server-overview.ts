@@ -6,6 +6,7 @@ import type { OnlineStatusResult } from '../types'
 import { renderTypstTemplate } from '../typst'
 import { sendOnlineStatus } from '../qq'
 import type { CommandRegistrationContext } from './types'
+import { runWithWaitingHint } from '../feedback'
 import { formatErrorForLog, logInfo } from '../logger'
 
 function createTemplatePayload(config: Config, result: OnlineStatusResult) {
@@ -52,7 +53,7 @@ export function registerServerOverviewCommand({
 }: CommandRegistrationContext) {
   ctx.command(primaryCommand(prefix, COMMAND_NAMES.serverOverview), commandDescription(COMMAND_NAMES.serverOverview, '查询服务器在线状态'))
     .alias(aliasCommand(prefix, COMMAND_NAMES.serverOverview))
-    .action(async ({ session }) => {
+    .action(async ({ session }) => runWithWaitingHint(ctx, session, config, async () => {
       const startedAt = Date.now()
       let result: OnlineStatusResult
       try {
@@ -79,7 +80,7 @@ export function registerServerOverviewCommand({
         logInfo(ctx, config, '[WARN] 查在线 Typst 渲染失败', formatErrorForLog(error))
       }
       return sendOnlineStatus(ctx, session, config, result, image)
-    })
+    }))
 }
 
 function sanitizeError(error: unknown): string {

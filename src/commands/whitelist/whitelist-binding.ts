@@ -1,9 +1,10 @@
 import type { WhitelistStateResponse } from '../../api/types'
+import { runWithWaitingHint, withQuote } from '../../feedback'
 import { hasPermission } from '../../permissions'
 import { aliasCommand, COMMAND_NAMES, commandDescription, primaryCommand } from '../command-names'
 import type { CommandRegistrationContext } from '../types'
 import { formatErrorForLog, logInfo } from '../../logger'
-import { maskIdentifier, quoteIfNeeded } from './shared'
+import { maskIdentifier } from './shared'
 
 export function registerWhitelistBindingCommand({
   ctx,
@@ -20,26 +21,28 @@ export function registerWhitelistBindingCommand({
     .alias(aliasCommand(prefix, command))
     .action(async ({ session }, rawPlayerName) => {
       if (!hasPermission(session, config.whitelistManagementAdminList)) {
-        return '你不在白名单管理权限名单中'
+        return withQuote(session, config, '你不在白名单管理权限名单中')
       }
       const playerName = String(rawPlayerName || '').trim()
-      if (!playerName) return `请提供 Xbox 玩家名，例如：${commandName} Steve`
-      if (!config.adminToken) return '尚未配置管理 API 令牌，无法查询白名单绑定'
-      try {
-        const data = await apiClient.post<WhitelistStateResponse>('/whitelist/state', { playerName }, true)
-        if (!data.bound || !data.binding) {
-          return quoteIfNeeded(session, config, `玩家 ${data.playerName} 当前未绑定聊天账号`)
+      if (!playerName) return withQuote(session, config, `请提供 Xbox 玩家名，例如：${commandName} Steve`)
+      if (!config.adminToken) return withQuote(session, config, '尚未配置管理 API 令牌，无法查询白名单绑定')
+      return runWithWaitingHint(ctx, session, config, async () => {
+        try {
+          const data = await apiClient.post<WhitelistStateResponse>('/whitelist/state', { playerName }, true)
+          if (!data.bound || !data.binding) {
+            return withQuote(session, config, `玩家 ${data.playerName} 当前未绑定聊天账号`)
+          }
+          return withQuote(session, config, [
+            `玩家：${data.binding.playerName}`,
+            '绑定状态：已绑定',
+            `聊天平台：${data.binding.platform}`,
+            `用户 ID：${maskIdentifier(data.binding.userId)}`,
+            `Bot ID：${maskIdentifier(data.binding.selfId)}`,
+          ].join('\n'))
+        } catch (error) {
+          logInfo(ctx, config, '[ERROR] 查询白名单绑定失败', formatErrorForLog(error))
+          return withQuote(session, config, `查询白名单绑定失败：${error instanceof Error ? error.message : String(error)}`)
         }
-        return quoteIfNeeded(session, config, [
-          `玩家：${data.binding.playerName}`,
-          '绑定状态：已绑定',
-          `聊天平台：${data.binding.platform}`,
-          `用户 ID：${maskIdentifier(data.binding.userId)}`,
-          `Bot ID：${maskIdentifier(data.binding.selfId)}`,
-        ].join('\n'))
-      } catch (error) {
-        logInfo(ctx, config, '[ERROR] 查询白名单绑定失败', formatErrorForLog(error))
-        return `查询白名单绑定失败：${error instanceof Error ? error.message : String(error)}`
-      }
+      })
     })
 }

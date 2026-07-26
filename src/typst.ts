@@ -39,6 +39,11 @@ export interface TypstTemplateTheme {
   stats_text: string
 }
 
+export interface TypstShadowAsset {
+  path: string
+  content: Buffer
+}
+
 function normalizeColorHex(value: string | undefined, fallback: string): string {
   const normalized = (value || '').trim()
   if (/^#[0-9a-f]{6}$/i.test(normalized)) return normalized.toLowerCase()
@@ -187,14 +192,28 @@ export class TypstRenderer {
     }
   }
 
-  private toTemplateSvg(template: TypstTemplateName, payload: Record<string, unknown>): string {
+  private toTemplateSvg(
+    template: TypstTemplateName,
+    payload: Record<string, unknown>,
+    shadowAssets: TypstShadowAsset[] = [],
+  ): string {
     const compiler = this.getCompiler()
     const mainFilePath = getRuntimeTemplatePath(
       this.ctx.baseDir,
       this.cfg.typstTemplateFolderRelativePath,
       template,
     )
+    const mappedPaths: string[] = []
     try {
+      for (const asset of shadowAssets) {
+        const absolutePath = path.resolve(this.workspaceDir, asset.path)
+        const relativePath = path.relative(this.workspaceDir, absolutePath)
+        if (!relativePath || relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+          throw new Error(`Typst shadow asset 路径必须位于模板工作区内: ${asset.path}`)
+        }
+        compiler.mapShadow(absolutePath, asset.content)
+        mappedPaths.push(absolutePath)
+      }
       return this.fixSvgForResvg(compiler.svg({
         mainFilePath,
         inputs: {
@@ -206,6 +225,11 @@ export class TypstRenderer {
         resetRead: true,
       }))
     } finally {
+      for (const mappedPath of mappedPaths.reverse()) {
+        try {
+          compiler.unmapShadow(mappedPath)
+        } catch {}
+      }
       compiler.evictCache(10)
     }
   }
@@ -225,8 +249,9 @@ export class TypstRenderer {
     template: TypstTemplateName,
     payload: Record<string, unknown>,
     scale: number = 2.33,
+    shadowAssets: TypstShadowAsset[] = [],
   ): Promise<Buffer> {
-    const resvg = new Resvg(this.toTemplateSvg(template, payload), {
+    const resvg = new Resvg(this.toTemplateSvg(template, payload, shadowAssets), {
       fitTo: { mode: 'zoom', value: scale },
       font: { loadSystemFonts: true },
       ...(!this.cfg.typstTransparentBackground && {
@@ -264,9 +289,10 @@ export async function renderTypstTemplate(
   cfg: Config,
   template: TypstTemplateName,
   payload: Record<string, unknown>,
+  shadowAssets: TypstShadowAsset[] = [],
 ): Promise<Buffer> {
   const renderer = await getTypstRenderer(ctx, cfg)
-  return renderer.toTemplatePng(template, payload, cfg.typstRenderScale)
+  return renderer.toTemplatePng(template, payload, cfg.typstRenderScale, shadowAssets)
 }
 
 export function resetTypstTemplateCaches(): void {

@@ -68,7 +68,8 @@ function createConfig(overrides: Record<string, unknown> = {}) {
   return {
     hidePlayerCoordinates: true,
     playerFieldFilters: DEFAULT_PLAYER_FIELD_FILTERS.map(field => ({ ...field })),
-    quoteCommandReplies: false,
+    enableQuote: false,
+    enableWaitingHint: false,
     ...overrides,
   } as any
 }

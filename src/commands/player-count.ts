@@ -7,6 +7,7 @@ import {
   createTypstFailureOutput,
 } from '../typst'
 import type { CommandRegistrationContext } from './types'
+import { runWithWaitingHint, withQuote } from '../feedback'
 import { formatErrorForLog, logInfo } from '../logger'
 
 function formatTextOutput(data: PlayersCountResponse, label: string): string {
@@ -25,7 +26,7 @@ export function registerPlayerCountCommand({
   ctx.command(primaryCommand(prefix, COMMAND_NAMES.playerCount), commandDescription(COMMAND_NAMES.playerCount, '玩家数量'))
     .alias(aliasCommand(prefix, COMMAND_NAMES.playerCount))
     .option('mode', '-m <mode:string> 输出模式 (text/image)')
-    .action(async ({ session, options }) => {
+    .action(async ({ session, options }) => runWithWaitingHint(ctx, session, config, async () => {
       try {
         const data = await apiClient.get<PlayersCountResponse>('/players/count')
         const modes = resolveOutputModes(options.mode, config)
@@ -51,13 +52,10 @@ export function registerPlayerCountCommand({
           }
         }
 
-        if (config.quoteCommandReplies && session.messageId) {
-          return h('', [h.quote(session.messageId), ...results])
-        }
-        return results
+        return withQuote(session, config, results)
       } catch (error) {
         logInfo(ctx, config, '[ERROR] 获取玩家数量失败', formatErrorForLog(error))
-        return `❌ 获取玩家数量失败: ${error.message}`
+        return withQuote(session, config, `❌ 获取玩家数量失败: ${error instanceof Error ? error.message : String(error)}`)
       }
-    })
+    }))
 }

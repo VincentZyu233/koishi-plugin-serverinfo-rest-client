@@ -111,10 +111,12 @@ export interface Config extends QQConfig {
   whitelistUnbindGroupOnly: boolean
 
   // ========== 📤 输出配置 ==========
+  /** 指令回复是否引用触发消息 */
+  enableQuote: boolean
+  /** 调用服务端 API 或执行图片渲染时是否显示等待提示 */
+  enableWaitingHint: boolean
   /** 默认输出模式 */
   defaultOutputModes: OutputMode[]
-  /** 指令触发的回复是否引用原消息 */
-  quoteCommandReplies: boolean
   /** Typst 图片失败时是否回退到文字结果 */
   typstFallbackToText: boolean
 
@@ -278,12 +280,15 @@ export const Config: Schema<Config> = Schema.intersect([
   }).description('🎯 指令细节设置'),
 
   Schema.object({
+    enableQuote: Schema.boolean()
+      .default(true)
+      .description('💬 指令回复是否引用触发消息；同时控制普通回复、等待提示和 QQ Markdown 的消息关联'),
+    enableWaitingHint: Schema.boolean()
+      .default(true)
+      .description('⏳ 调用服务端 API 或执行图片渲染时是否立即发送等待提示；根帮助和按钮菜单不受影响'),
     defaultOutputModes: createOutputModeSchema()
       .default(['text'])
       .description('📤 默认输出模式（可多选，使用 --mode 参数可覆盖）'),
-    quoteCommandReplies: Schema.boolean()
-      .default(true)
-      .description('💬 指令触发的回复是否引用原消息'),
     typstFallbackToText: Schema.boolean()
       .default(false)
       .description('📝 Typst 图片渲染失败时是否发送对应的完整文字结果'),

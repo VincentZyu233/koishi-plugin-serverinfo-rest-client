@@ -2,6 +2,7 @@ import path from 'node:path'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { describe, expect, it, vi } from 'vitest'
 import { buildTypstTheme, TypstRenderer } from '../src/index'
+import { renderPlayerActivityChartPng } from '../src/activity'
 import { ensureTemplateAssets, TEMPLATE_ENTRIES } from '../src/template'
 
 const templateConfig = {
@@ -67,6 +68,15 @@ describe('TypstRenderer', () => {
         label: '测试服', total: 1, page: 1, page_count: 1,
         players: [{ number: 1, name: 'Steve', total_play: '2小时', last_seen: '2026/07/22 12:00' }],
       },
+      playerActivity: {
+        label: '测试服', date_display: '2026年07月25日', chart_available: false, chart_path: '',
+        chart_message: '暂无数据', coverage_text: '暂无有效数据', generated_at: '12:00',
+        stats: [
+          { label: '末次在线', value: '2 人' }, { label: '峰值在线', value: '3 人' },
+          { label: '平均在线', value: '1.5 人' }, { label: '总进入次数', value: '4 次' },
+          { label: '独立玩家', value: '2 人' }, { label: '峰值进入分钟', value: '10:30 · 2 次' },
+        ],
+      },
       playerStats: {
         label: '测试服', name: 'Steve', xuid: '123456', total_play: '2小时', blocks_mined: '1,234',
         mobs_killed: '56', join_count: '7', first_seen: '2026/07/20', last_seen: '2026/07/22',
@@ -122,6 +132,21 @@ describe('TypstRenderer', () => {
         const png = await renderer.toTemplatePng(template, payload, 1)
         expect(png.subarray(0, 8).toString('hex'), `${template} conditional variant`).toBe('89504e470d0a1a0a')
       }
+
+      const chartPng = renderPlayerActivityChartPng([
+        { timestampMs: 0, label: '00:00', onlineCount: 1, joinCount: 0 },
+        { timestampMs: 300_000, label: '00:05', onlineCount: null, joinCount: null },
+        { timestampMs: 600_000, label: '00:10', onlineCount: 3, joinCount: 2 },
+      ], templateConfig)
+      const activityPng = await renderer.toTemplatePng('playerActivity', {
+        ...payloads.playerActivity,
+        chart_available: true,
+        chart_path: '../charts/test-activity.png',
+      }, 1, [{ path: 'charts/test-activity.png', content: chartPng }])
+      expect(activityPng.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a')
+      expect(activityPng.length).toBeGreaterThan(1_000)
+      expect(activityPng.readUInt32BE(16)).toBeGreaterThan(400)
+      expect(activityPng.readUInt32BE(20)).toBeGreaterThan(300)
 
       const transparentRenderer = new TypstRenderer(ctx, {
         ...templateConfig,

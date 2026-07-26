@@ -52,6 +52,8 @@ function createHarness(configOverrides: Record<string, unknown> = {}, prefix = '
   const config = {
     adminToken: 'admin-token',
     serverLabel: '测试服',
+    enableQuote: false,
+    enableWaitingHint: false,
     ...configOverrides,
   } as any
   registerPlayerStatisticsCommand({

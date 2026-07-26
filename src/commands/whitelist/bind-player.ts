@@ -1,8 +1,9 @@
 import type { WhitelistBindingResponse } from '../../api/types'
+import { runWithWaitingHint, withQuote } from '../../feedback'
 import { aliasCommand, COMMAND_NAMES, commandDescription, primaryCommand } from '../command-names'
 import type { CommandRegistrationContext } from '../types'
 import { formatErrorForLog, logInfo } from '../../logger'
-import { formatAllowlistResult, getSelfId, quoteIfNeeded } from './shared'
+import { formatAllowlistResult, getSelfId } from './shared'
 
 export function registerBindPlayerCommand({
   ctx,
@@ -18,25 +19,27 @@ export function registerBindPlayerCommand({
   )
     .alias(aliasCommand(prefix, COMMAND_NAMES.bindPlayer))
     .action(async ({ session }, rawPlayerName) => {
-      if (config.whitelistBindGroupOnly && session.isDirect) return '绑定玩家只能在群聊中使用'
+      if (config.whitelistBindGroupOnly && session.isDirect) return withQuote(session, config, '绑定玩家只能在群聊中使用')
       const playerName = String(rawPlayerName || '').trim()
-      if (!playerName) return `请提供 Xbox 玩家名，例如：${bindPlayerCommand} Steve`
-      if (!config.adminToken) return '尚未配置管理 API 令牌，无法绑定玩家'
+      if (!playerName) return withQuote(session, config, `请提供 Xbox 玩家名，例如：${bindPlayerCommand} Steve`)
+      if (!config.adminToken) return withQuote(session, config, '尚未配置管理 API 令牌，无法绑定玩家')
       const selfId = getSelfId(session)
-      if (!selfId) return '无法识别当前 Bot 的 selfId，请检查适配器会话信息'
-      try {
-        const data = await apiClient.post<WhitelistBindingResponse>('/whitelist/bind', {
-          platform: session.platform,
-          selfId,
-          userId: session.userId,
-          channelId: session.channelId,
-          playerName,
-        }, true)
-        const state = data.created ? '绑定成功' : '已经绑定'
-        return quoteIfNeeded(session, config, `${state}：${data.binding.playerName}${formatAllowlistResult(data)}`)
-      } catch (error) {
-        logInfo(ctx, config, '[ERROR] 绑定玩家失败', formatErrorForLog(error))
-        return `绑定玩家失败：${error instanceof Error ? error.message : String(error)}`
-      }
+      if (!selfId) return withQuote(session, config, '无法识别当前 Bot 的 selfId，请检查适配器会话信息')
+      return runWithWaitingHint(ctx, session, config, async () => {
+        try {
+          const data = await apiClient.post<WhitelistBindingResponse>('/whitelist/bind', {
+            platform: session.platform,
+            selfId,
+            userId: session.userId,
+            channelId: session.channelId,
+            playerName,
+          }, true)
+          const state = data.created ? '绑定成功' : '已经绑定'
+          return withQuote(session, config, `${state}：${data.binding.playerName}${formatAllowlistResult(data)}`)
+        } catch (error) {
+          logInfo(ctx, config, '[ERROR] 绑定玩家失败', formatErrorForLog(error))
+          return withQuote(session, config, `绑定玩家失败：${error instanceof Error ? error.message : String(error)}`)
+        }
+      })
     })
 }

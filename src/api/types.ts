@@ -170,6 +170,38 @@ export interface PlayerHistoryResponse {
   players: HistoricalPlayer[]
 }
 
+export interface PlayerActivityMinute {
+  timestampMs: number
+  onlineCount: number | null
+  joinCount: number
+}
+
+export interface PlayerActivityResponse {
+  date: string
+  timezone: 'Asia/Shanghai'
+  startAtMs: number
+  endAtMs: number
+  dayEndAtMs: number
+  generatedAtMs: number
+  sampleIntervalSeconds: number
+  complete: boolean
+  hasData: boolean
+  discardedRecordCount: number
+  summary: {
+    latestOnlineCount: number | null
+    peakOnlineCount: number
+    averageOnlineCount: number
+    totalJoinCount: number
+    uniquePlayerCount: number
+    peakJoinCount: number
+    peakJoinMinuteMs: number | null
+    validHeartbeatCount: number
+    coverageStartMs: number | null
+    coverageEndMs: number | null
+  }
+  minutes: PlayerActivityMinute[]
+}
+
 export type PlayerStatsResponse = HistoricalPlayer
 
 export interface WhitelistBinding {

@@ -9,7 +9,7 @@ describe('QQ Markdown and keyboard', () => {
   const ctx = { logger: { info: vi.fn() } } as any
   const config = {
     commandPrefix: 'mcinfo2', useCommandPrefix: true, serverLabel: '二服', qqKeyboardEnabled: true,
-    qqMarkdownKeyboardJson: '', qqMarkdownMaxPlayers: 2, qqMarkdownEnabled: true,
+    qqMarkdownKeyboardJson: '', qqMarkdownMaxPlayers: 2, qqMarkdownEnabled: true, enableQuote: true,
   } as any
 
   it('builds the first menu page as a 2x4 command grid plus navigation', () => {
@@ -40,7 +40,8 @@ describe('QQ Markdown and keyboard', () => {
     const rows = menu.keyboard!.rows
     const labels = rows.flatMap(row => row.buttons.map(button => button.render_data.label))
 
-    expect(rows.map(row => row.buttons.length)).toEqual([2, 2, 2, 2])
+    expect(rows.map(row => row.buttons.length)).toEqual([2, 2, 2, 1, 2])
+    expect(labels).toContain('📈 玩家活动')
     expect(labels).toContain('👥 玩家列表')
     expect(labels).toContain('📝 玩家名列表')
     expect(labels).toContain('🔗 绑定玩家')
@@ -49,9 +50,9 @@ describe('QQ Markdown and keyboard', () => {
     expect(labels).not.toContain('🔎 查询白名单绑定')
     expect(labels).not.toContain('➖ 移除白名单')
     expect(labels).not.toContain('🛠️ 执行命令')
-    expect(rows[1].buttons[1].action.enter).toBe(false)
     expect(rows[2].buttons.every(button => button.action.enter === false)).toBe(true)
-    expect(rows[3].buttons[1]).toMatchObject({
+    expect(rows[3].buttons[0].action.enter).toBe(false)
+    expect(rows[4].buttons[1]).toMatchObject({
       render_data: { label: '❌ 下一页', style: 0 },
       action: { data: 'mcinfo2.按钮菜单 3', enter: true },
     })
@@ -97,9 +98,26 @@ describe('QQ Markdown and keyboard', () => {
     await sendQQMarkdown(ctx, config, session, '# status', 'status', buildQQKeyboard(config))
     expect(sendPrivateMessage).toHaveBeenCalledWith('private-1', expect.objectContaining({
       msg_type: 2,
+      msg_id: 'message-1',
       markdown: { content: '# status' },
       keyboard: expect.any(Object),
+      message_reference: { message_id: 'message-1' },
     }))
+  })
+
+  it('omits QQ reply association when quoting is disabled', async () => {
+    const sendPrivateMessage = vi.fn().mockResolvedValue(undefined)
+    const session = {
+      isDirect: true, channelId: 'private-1', messageId: 'message-1', timestamp: Date.now(),
+      bot: { internal: { sendPrivateMessage } },
+    } as any
+
+    await sendQQMarkdown(ctx, { ...config, enableQuote: false }, session, '# status', 'status', null)
+
+    const payload = sendPrivateMessage.mock.calls[0][1]
+    expect(payload.msg_id).toBeUndefined()
+    expect(payload.msg_seq).toBeUndefined()
+    expect(payload.message_reference).toBeUndefined()
   })
 
   it('uses qq:rawmarkdown when the adapter exposes autoStreamText', async () => {

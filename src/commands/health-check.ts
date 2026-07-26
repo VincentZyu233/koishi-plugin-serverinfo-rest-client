@@ -8,6 +8,7 @@ import {
   createTypstFailureOutput,
 } from '../typst'
 import type { CommandRegistrationContext } from './types'
+import { runWithWaitingHint, withQuote } from '../feedback'
 import { formatErrorForLog, logInfo } from '../logger'
 
 function formatTextOutput(data: HealthResponse, label: string): string {
@@ -57,7 +58,7 @@ export function registerHealthCheckCommand({
   ctx.command(primaryCommand(prefix, COMMAND_NAMES.healthCheck), commandDescription(COMMAND_NAMES.healthCheck, '健康检查'))
     .alias(aliasCommand(prefix, COMMAND_NAMES.healthCheck))
     .option('mode', '-m <mode:string> 输出模式 (text/image)')
-    .action(async ({ session, options }) => {
+    .action(async ({ session, options }) => runWithWaitingHint(ctx, session, config, async () => {
       try {
         const data = await apiClient.get<HealthResponse>('/health')
         const modes = resolveOutputModes(options.mode, config)
@@ -84,13 +85,10 @@ export function registerHealthCheckCommand({
           }
         }
 
-        if (config.quoteCommandReplies && session.messageId) {
-          return h('', [h.quote(session.messageId), ...results])
-        }
-        return results
+        return withQuote(session, config, results)
       } catch (error) {
         logInfo(ctx, config, '[ERROR] 健康检查失败', formatErrorForLog(error))
-        return `❌ 健康检查失败: ${error.message}`
+        return withQuote(session, config, `❌ 健康检查失败: ${error instanceof Error ? error.message : String(error)}`)
       }
-    })
+    }))
 }

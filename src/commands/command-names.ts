@@ -3,6 +3,7 @@ export const COMMAND_NAMES = {
   healthCheck: { primary: '健康检查', alias: 'health-check', emoji: '❤️' },
   serverOverview: { primary: '查在线', alias: 'server-overview', emoji: '🌐' },
   playerHistory: { primary: '历史记录', alias: 'player-history', emoji: '📚' },
+  playerActivity: { primary: '玩家活动', alias: 'player-activity', emoji: '📈' },
   playerStatistics: { primary: '玩家数据统计', alias: 'player-stats', emoji: '📊' },
   executeCommand: { primary: '执行命令', alias: 'execute-command', emoji: '🛠️' },
   bindPlayer: { primary: '绑定玩家', alias: 'bind-player', emoji: '🔗' },

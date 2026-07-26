@@ -1,4 +1,5 @@
 import type { WhitelistBindingResponse } from '../../api/types'
+import { runWithWaitingHint, withQuote } from '../../feedback'
 import { hasPermission } from '../../permissions'
 import { aliasCommand, COMMAND_NAMES, commandDescription, primaryCommand } from '../command-names'
 import type { CommandRegistrationContext } from '../types'
@@ -8,7 +9,6 @@ import {
   getSelfId,
   maskIdentifier,
   parseTargetUserId,
-  quoteIfNeeded,
   requesterId,
 } from './shared'
 
@@ -28,38 +28,40 @@ export function registerAddWhitelistCommand({
     .option('force', '-f, --force 强制替换目标用户和 Xbox 玩家已有的冲突绑定')
     .action(async ({ session, options }, rawPlayerName, rawTargetUser) => {
       if (!hasPermission(session, config.whitelistManagementAdminList)) {
-        return '你不在白名单管理权限名单中'
+        return withQuote(session, config, '你不在白名单管理权限名单中')
       }
       const playerName = String(rawPlayerName || '').trim()
-      if (!playerName) return `请提供 Xbox 玩家名，例如：${commandName} Steve @目标用户`
+      if (!playerName) return withQuote(session, config, `请提供 Xbox 玩家名，例如：${commandName} Steve @目标用户`)
       const targetUserId = parseTargetUserId(rawTargetUser)
-      if (!targetUserId) return `请艾特目标用户或提供 userId，例如：${commandName} Steve @目标用户`
-      if (!config.adminToken) return '尚未配置管理 API 令牌，无法添加白名单'
+      if (!targetUserId) return withQuote(session, config, `请艾特目标用户或提供 userId，例如：${commandName} Steve @目标用户`)
+      if (!config.adminToken) return withQuote(session, config, '尚未配置管理 API 令牌，无法添加白名单')
       const selfId = getSelfId(session)
-      if (!selfId) return '无法识别当前 Bot 的 selfId，请检查适配器会话信息'
+      if (!selfId) return withQuote(session, config, '无法识别当前 Bot 的 selfId，请检查适配器会话信息')
 
-      try {
-        const data = await apiClient.post<WhitelistBindingResponse>('/whitelist/add', {
-          platform: session.platform,
-          selfId,
-          userId: targetUserId,
-          channelId: session.channelId,
-          playerName,
-          requester: requesterId(session),
-          force: Boolean(options.force),
-        }, true)
-        const state = data.forced ? '已强制创建绑定' : (data.created ? '已创建绑定' : '绑定已经存在')
-        const replacements = (data.replacedBindings || []).map((binding) =>
-          `\n- 已替换：${maskIdentifier(binding.userId)} ↔ ${binding.playerName}`,
-        ).join('')
-        return quoteIfNeeded(
-          session,
-          config,
-          `${state}：${maskIdentifier(data.binding.userId)} ↔ ${data.binding.playerName}${replacements}${formatAllowlistResult(data)}`,
-        )
-      } catch (error) {
-        logInfo(ctx, config, '[ERROR] 添加白名单失败', formatErrorForLog(error))
-        return `添加白名单失败：${error instanceof Error ? error.message : String(error)}`
-      }
+      return runWithWaitingHint(ctx, session, config, async () => {
+        try {
+          const data = await apiClient.post<WhitelistBindingResponse>('/whitelist/add', {
+            platform: session.platform,
+            selfId,
+            userId: targetUserId,
+            channelId: session.channelId,
+            playerName,
+            requester: requesterId(session),
+            force: Boolean(options.force),
+          }, true)
+          const state = data.forced ? '已强制创建绑定' : (data.created ? '已创建绑定' : '绑定已经存在')
+          const replacements = (data.replacedBindings || []).map((binding) =>
+            `\n- 已替换：${maskIdentifier(binding.userId)} ↔ ${binding.playerName}`,
+          ).join('')
+          return withQuote(
+            session,
+            config,
+            `${state}：${maskIdentifier(data.binding.userId)} ↔ ${data.binding.playerName}${replacements}${formatAllowlistResult(data)}`,
+          )
+        } catch (error) {
+          logInfo(ctx, config, '[ERROR] 添加白名单失败', formatErrorForLog(error))
+          return withQuote(session, config, `添加白名单失败：${error instanceof Error ? error.message : String(error)}`)
+        }
+      })
     })
 }

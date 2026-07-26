@@ -26,7 +26,8 @@ function createHarness(configOverrides: Record<string, unknown> = {}) {
       platform: 'qq', selfId: 'bot-1', channelId: 'group-1', userId: 'admin-1', enabled: true,
     }],
     adminToken: 'admin-token',
-    quoteCommandReplies: false,
+    enableQuote: false,
+    enableWaitingHint: false,
     ...configOverrides,
   } as any
   registerWhitelistCommands({

@@ -1,5 +1,4 @@
-import { h, type Session } from 'koishi'
-import type { Config } from '../../config'
+import type { Session } from 'koishi'
 
 export function parseTargetUserId(rawTargetUser: unknown): string {
   const source = String(rawTargetUser || '').trim()
@@ -38,11 +37,4 @@ export function formatAllowlistResult(data: {
     ? '\n提示：BDS allowlist 同步已关闭，本次仅修改账号绑定'
     : ''
   return `${syncNotice}${formatWarning(data)}`
-}
-
-export function quoteIfNeeded(session: Session, config: Config, text: string) {
-  if (config.quoteCommandReplies && session.messageId) {
-    return h('', [h.quote(session.messageId), h.text(text)])
-  }
-  return text
 }

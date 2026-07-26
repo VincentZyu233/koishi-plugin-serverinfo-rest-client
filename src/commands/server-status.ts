@@ -7,6 +7,7 @@ import {
   createTypstFailureOutput,
 } from '../typst'
 import type { CommandRegistrationContext } from './types'
+import { runWithWaitingHint, withQuote } from '../feedback'
 import { CLIENT_VERSION } from '../version'
 import { formatErrorForLog, logInfo } from '../logger'
 
@@ -47,7 +48,7 @@ export function registerServerStatusCommand({
   ctx.command(primaryCommand(prefix, COMMAND_NAMES.serverStatus), commandDescription(COMMAND_NAMES.serverStatus, '服务器状态'))
     .alias(aliasCommand(prefix, COMMAND_NAMES.serverStatus))
     .option('mode', '-m <mode:string> 输出模式 (text/image)')
-    .action(async ({ session, options }) => {
+    .action(async ({ session, options }) => runWithWaitingHint(ctx, session, config, async () => {
       try {
         const data = await apiClient.get<StatusResponse>('/status')
         const modes = resolveOutputModes(options.mode, config)
@@ -74,13 +75,10 @@ export function registerServerStatusCommand({
           }
         }
 
-        if (config.quoteCommandReplies && session.messageId) {
-          return h('', [h.quote(session.messageId), ...results])
-        }
-        return results
+        return withQuote(session, config, results)
       } catch (error) {
         logInfo(ctx, config, '[ERROR] 获取服务器状态失败', formatErrorForLog(error))
-        return `❌ 获取服务器状态失败: ${error.message}`
+        return withQuote(session, config, `❌ 获取服务器状态失败: ${error instanceof Error ? error.message : String(error)}`)
       }
-    })
+    }))
 }

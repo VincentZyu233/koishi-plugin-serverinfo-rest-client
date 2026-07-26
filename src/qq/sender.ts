@@ -2,6 +2,7 @@ import { h, type Context, type Session } from 'koishi'
 import type { Config } from '../config'
 import type { OnlineStatusResult } from '../types'
 import type { QQKeyboard } from './types'
+import { withQuote } from '../feedback'
 import { formatErrorForLog, logInfo } from '../logger'
 import { buildQQKeyboard } from './keyboard'
 import { fitQQMarkdownImage, getPngDimensions } from './image'
@@ -47,11 +48,10 @@ export async function sendRenderedReply(
     }
   }
 
-  const children: h[] = []
-  if (config.quoteCommandReplies && session.messageId) children.push(h.quote(session.messageId))
-  children.push(h.image(options.image, 'image/png'))
-  children.push(h.text(options.text))
-  return h('', children)
+  return withQuote(session, config, h('', [
+    h.image(options.image, 'image/png'),
+    h.text(options.text),
+  ]))
 }
 
 export async function sendOnlineStatus(
@@ -83,8 +83,7 @@ export async function sendOnlineStatus(
   }
 
   const children: h[] = []
-  if (config.quoteCommandReplies && session.messageId) children.push(h.quote(session.messageId))
   if (image) children.push(h.image(image, 'image/png'))
   children.push(h.text(text))
-  return h('', children)
+  return withQuote(session, config, h('', children))
 }

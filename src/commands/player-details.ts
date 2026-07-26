@@ -8,6 +8,7 @@ import {
   createTypstFailureOutput,
 } from '../typst'
 import type { CommandRegistrationContext } from './types'
+import { runWithWaitingHint, withQuote } from '../feedback'
 import { formatErrorForLog, logInfo } from '../logger'
 
 interface PlayerDetailRow {
@@ -308,29 +309,30 @@ export function registerPlayerDetailsCommand({
     .alias(aliasCommand(prefix, COMMAND_NAMES.playerDetails))
     .option('mode', '-m <mode:string> 输出模式 (text/image)')
     .action(async ({ session, options }, name) => {
-      if (!name) return `❌ 请指定玩家名称，例如: ${primaryCommand(prefix, COMMAND_NAMES.playerDetails)} Steve`
-      try {
-        const data = await apiClient.get<PlayerResponse>('/player', { name })
-        const modes = resolveOutputModes(options.mode, config)
-        const results: h[] = []
-        for (const mode of modes) {
-          if (mode === 'text') {
-            results.push(h.text(formatTextOutput(data, config, label)))
-          } else {
-            try {
-              const image = await renderTypstTemplate(ctx, config, 'playerDetail', createTemplatePayload(data, config, label))
-              results.push(h.image(image, 'image/png'))
-            } catch (error) {
-              const fallback = createTypstFailureOutput(error, config, modes, formatTextOutput(data, config, label))
-              if (fallback) results.push(fallback)
+      if (!name) return withQuote(session, config, `❌ 请指定玩家名称，例如: ${primaryCommand(prefix, COMMAND_NAMES.playerDetails)} Steve`)
+      return runWithWaitingHint(ctx, session, config, async () => {
+        try {
+          const data = await apiClient.get<PlayerResponse>('/player', { name })
+          const modes = resolveOutputModes(options.mode, config)
+          const results: h[] = []
+          for (const mode of modes) {
+            if (mode === 'text') {
+              results.push(h.text(formatTextOutput(data, config, label)))
+            } else {
+              try {
+                const image = await renderTypstTemplate(ctx, config, 'playerDetail', createTemplatePayload(data, config, label))
+                results.push(h.image(image, 'image/png'))
+              } catch (error) {
+                const fallback = createTypstFailureOutput(error, config, modes, formatTextOutput(data, config, label))
+                if (fallback) results.push(fallback)
+              }
             }
           }
+          return withQuote(session, config, results)
+        } catch (error) {
+          logInfo(ctx, config, '[ERROR] 获取玩家在线详情失败', formatErrorForLog(error))
+          return withQuote(session, config, `❌ 获取玩家在线详情失败: ${error instanceof Error ? error.message : String(error)}`)
         }
-        if (config.quoteCommandReplies && session.messageId) return h('', [h.quote(session.messageId), ...results])
-        return results
-      } catch (error) {
-        logInfo(ctx, config, '[ERROR] 获取玩家在线详情失败', formatErrorForLog(error))
-        return `❌ 获取玩家在线详情失败: ${error instanceof Error ? error.message : String(error)}`
-      }
+      })
     })
 }

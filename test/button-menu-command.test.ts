@@ -35,6 +35,8 @@ function createHarness(configOverrides: Record<string, unknown> = {}) {
     serverLabel: '测试服',
     qqMarkdownEnabled: true,
     qqKeyboardEnabled: true,
+    enableQuote: false,
+    enableWaitingHint: true,
     ...configOverrides,
   } as any
   registerButtonMenuCommand({
@@ -61,7 +63,7 @@ beforeEach(() => {
 describe('button menu command', () => {
   it('uses page one by default and sends QQ Markdown', async () => {
     const { action, config } = createHarness()
-    const session = { platform: 'qq' } as any
+    const session = { platform: 'qq', send: vi.fn() } as any
 
     await expect(action({ session })).resolves.toBe('')
 
@@ -74,6 +76,7 @@ describe('button menu command', () => {
       'menu',
       { rows: [] },
     )
+    expect(session.send).not.toHaveBeenCalled()
   })
 
   it('rejects non-QQ platforms before building a menu', async () => {

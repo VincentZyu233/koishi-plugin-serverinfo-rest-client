@@ -28,6 +28,7 @@ const FIRST_PAGE_COMMANDS: MenuCommandItem[] = [
 ]
 
 const SECOND_PAGE_COMMANDS: MenuCommandItem[] = [
+  { command: COMMAND_NAMES.playerActivity },
   { command: COMMAND_NAMES.playerList },
   { command: COMMAND_NAMES.playerNames },
   { command: COMMAND_NAMES.playerStatistics },

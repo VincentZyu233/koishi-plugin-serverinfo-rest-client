@@ -5,6 +5,7 @@ import { renderTypstTemplate } from '../typst'
 import { buildCommandKeyboard, escapeMarkdown, sendRenderedReply } from '../qq'
 import { aliasCommand, COMMAND_NAMES, commandDescription, primaryCommand } from './command-names'
 import type { CommandRegistrationContext } from './types'
+import { runWithWaitingHint, withQuote } from '../feedback'
 import { formatErrorForLog, logInfo } from '../logger'
 
 export function registerPlayerStatisticsCommand({
@@ -23,60 +24,64 @@ export function registerPlayerStatisticsCommand({
     .action(async ({ session }, rawPlayerName) => {
       const explicitPlayerName = String(rawPlayerName || '').trim()
       if (!explicitPlayerName && !config.adminToken) {
-        return `尚未配置管理 API 令牌，无法查询当前账号绑定。\n你仍可使用：${playerStatsCommand} <玩家名>`
+        return withQuote(session, config, `尚未配置管理 API 令牌，无法查询当前账号绑定。\n你仍可使用：${playerStatsCommand} <玩家名>`)
       }
-      try {
-        let data: PlayerStatsResponse
-        if (explicitPlayerName) {
-          data = await apiClient.get<PlayerStatsResponse>('/players/stats', { name: explicitPlayerName })
-        } else {
-          const selfId = session.selfId || session.bot?.selfId
-          if (!selfId) return '无法识别当前 Bot 的 selfId，请检查适配器会话信息'
-          data = await apiClient.post<PlayerStatsResponse>('/players/stats/bound', {
-            platform: session.platform,
-            selfId,
-            userId: session.userId,
-          }, true)
-        }
-        const image = await renderTypstTemplate(ctx, config, 'playerStats', {
-          label: config.serverLabel,
-          name: data.name,
-          xuid: data.xuid,
-          total_play: formatDuration(data.totalPlayMs),
-          blocks_mined: formatInteger(data.blocksMined),
-          mobs_killed: formatInteger(data.mobsKilled),
-          join_count: formatInteger(data.joinCount),
-          first_seen: formatDate(data.firstSeenMs),
-          last_seen: formatDate(data.lastSeenMs),
-        })
-        return sendRenderedReply(ctx, session, config, {
-          image,
-          text: formatPlayerDataText(config, data),
-          title: `${config.serverLabel} ${COMMAND_NAMES.playerStatistics.emoji} 玩家数据`,
-          markdownBody: formatPlayerDataMarkdown(data),
-          keyboard: buildCommandKeyboard(config, [
-            {
-              label: '刷新数据',
-              command: explicitPlayerName ? `${playerStatsCommand} ${data.name}` : playerStatsCommand,
-              style: 1,
-            },
-            { label: '查看在线', command: onlineCommand },
-          ]),
-        })
-      } catch (error) {
-        if (!explicitPlayerName && error instanceof ApiRequestError) {
-          if (error.code === 'binding_not_found') {
-            const bindPlayerCommand = primaryCommand(prefix, COMMAND_NAMES.bindPlayer)
-            return `你还没有绑定 Xbox 玩家名。\n请先使用：${bindPlayerCommand} <玩家名>\n也可以使用：${playerStatsCommand} <玩家名> 查询指定玩家。`
-          }
-          if (error.code === 'bound_player_stats_not_found') {
-            const playerName = getStringField(error.responseData, 'playerName') || '当前绑定玩家'
-            return `你绑定的玩家 ${playerName} 暂无历史数据。\n该玩家至少需要进入服务器一次后才能产生统计记录。`
-          }
-        }
-        logInfo(ctx, config, '[ERROR] 查询玩家数据统计失败', formatErrorForLog(error))
-        return `查询玩家数据统计失败：${error instanceof Error ? error.message : String(error)}`
+      const selfId = explicitPlayerName ? '' : (session.selfId || session.bot?.selfId)
+      if (!explicitPlayerName && !selfId) {
+        return withQuote(session, config, '无法识别当前 Bot 的 selfId，请检查适配器会话信息')
       }
+      return runWithWaitingHint(ctx, session, config, async () => {
+        try {
+          let data: PlayerStatsResponse
+          if (explicitPlayerName) {
+            data = await apiClient.get<PlayerStatsResponse>('/players/stats', { name: explicitPlayerName })
+          } else {
+            data = await apiClient.post<PlayerStatsResponse>('/players/stats/bound', {
+              platform: session.platform,
+              selfId,
+              userId: session.userId,
+            }, true)
+          }
+          const image = await renderTypstTemplate(ctx, config, 'playerStats', {
+            label: config.serverLabel,
+            name: data.name,
+            xuid: data.xuid,
+            total_play: formatDuration(data.totalPlayMs),
+            blocks_mined: formatInteger(data.blocksMined),
+            mobs_killed: formatInteger(data.mobsKilled),
+            join_count: formatInteger(data.joinCount),
+            first_seen: formatDate(data.firstSeenMs),
+            last_seen: formatDate(data.lastSeenMs),
+          })
+          return sendRenderedReply(ctx, session, config, {
+            image,
+            text: formatPlayerDataText(config, data),
+            title: `${config.serverLabel} ${COMMAND_NAMES.playerStatistics.emoji} 玩家数据`,
+            markdownBody: formatPlayerDataMarkdown(data),
+            keyboard: buildCommandKeyboard(config, [
+              {
+                label: '刷新数据',
+                command: explicitPlayerName ? `${playerStatsCommand} ${data.name}` : playerStatsCommand,
+                style: 1,
+              },
+              { label: '查看在线', command: onlineCommand },
+            ]),
+          })
+        } catch (error) {
+          if (!explicitPlayerName && error instanceof ApiRequestError) {
+            if (error.code === 'binding_not_found') {
+              const bindPlayerCommand = primaryCommand(prefix, COMMAND_NAMES.bindPlayer)
+              return withQuote(session, config, `你还没有绑定 Xbox 玩家名。\n请先使用：${bindPlayerCommand} <玩家名>\n也可以使用：${playerStatsCommand} <玩家名> 查询指定玩家。`)
+            }
+            if (error.code === 'bound_player_stats_not_found') {
+              const playerName = getStringField(error.responseData, 'playerName') || '当前绑定玩家'
+              return withQuote(session, config, `你绑定的玩家 ${playerName} 暂无历史数据。\n该玩家至少需要进入服务器一次后才能产生统计记录。`)
+            }
+          }
+          logInfo(ctx, config, '[ERROR] 查询玩家数据统计失败', formatErrorForLog(error))
+          return withQuote(session, config, `查询玩家数据统计失败：${error instanceof Error ? error.message : String(error)}`)
+        }
+      })
     })
 }
 

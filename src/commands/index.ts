@@ -4,6 +4,7 @@ import { registerHealthCheckCommand } from './health-check'
 import { registerPlayerCountCommand } from './player-count'
 import { registerPlayerDetailsCommand } from './player-details'
 import { registerPlayerHistoryCommand } from './player-history'
+import { registerPlayerActivityCommand } from './player-activity'
 import { registerPlayerListCommand } from './player-list'
 import { registerPlayerNamesCommand } from './player-names'
 import { registerPlayerStatisticsCommand } from './player-statistics'
@@ -23,6 +24,7 @@ export function registerCommands(registration: CommandRegistrationContext) {
   registerHealthCheckCommand(registration)
   registerServerOverviewCommand(registration)
   registerPlayerHistoryCommand(registration)
+  registerPlayerActivityCommand(registration)
   registerPlayerStatisticsCommand(registration)
   registerExecuteCommand(registration)
   registerWhitelistCommands(registration)
