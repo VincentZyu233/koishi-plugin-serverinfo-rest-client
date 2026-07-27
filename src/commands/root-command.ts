@@ -4,6 +4,9 @@ import { COMMAND_NAMES, commandUsage } from './command-names'
 import type { CommandRegistrationContext } from './types'
 
 export function registerRootCommand({ ctx, config, rootCommand, prefix, label }: CommandRegistrationContext) {
+  const previewHelp = config.enableAllTypstImagePreviewCommand
+    ? `\n• ${commandUsage(prefix, COMMAND_NAMES.allTypstImagePreview, '[--dryrun]')} - 批量生成真实或演示 Typst 图片预览`
+    : ''
   ctx.command(rootCommand, `🎮 ${label} Minecraft BDS 服务器信息查询`)
     .action(({ session }) => withQuote(session, config, h.text(`🎮 ${label} Minecraft BDS 服务器信息查询
 
@@ -25,7 +28,7 @@ export function registerRootCommand({ ctx, config, rootCommand, prefix, label }:
 • ${commandUsage(prefix, COMMAND_NAMES.playerList)} - 玩家列表
 • ${commandUsage(prefix, COMMAND_NAMES.playerCount)} - 玩家数量
 • ${commandUsage(prefix, COMMAND_NAMES.playerNames)} - 玩家名列表
-• ${commandUsage(prefix, COMMAND_NAMES.playerDetails, '<玩家名>')} - 查询在线玩家的实时状态与详情
+• ${commandUsage(prefix, COMMAND_NAMES.playerDetails, '<玩家名>')} - 查询在线玩家的实时状态与详情${previewHelp}
 
 带 --mode 选项的查询指令可指定 text/image 输出；在线图遵循全局 defaultOutputModes，并可通过 --dryrun 使用内置演示数据`)))
 }

@@ -10,6 +10,12 @@ import { createQQConfigSchema, QQConfig } from './qq/config'
 export type OutputMode = 'text' | 'typst-image'
 export type TokenSendMode = 'param' | 'header' | 'both'
 
+export const TYPST_PREVIEW_OUTPUT_PARTS = [
+  'cache',
+  'll-serverinfo-rest-client',
+  'typst-preview',
+] as const
+
 export interface PlayerFieldFilter {
   key: string
   enabled: boolean
@@ -73,6 +79,8 @@ export interface Config extends QQConfig {
   commandPrefix: string
   /** 是否为功能指令使用前缀 */
   useCommandPrefix: boolean
+  /** 是否注册所有 Typst 图片预览管理指令 */
+  enableAllTypstImagePreviewCommand: boolean
   /** 服务器名称标记 */
   serverLabel: string
 
@@ -131,6 +139,8 @@ export interface Config extends QQConfig {
   typstFontFamily: string
   /** Typst 运行时模板文件夹相对路径 */
   typstTemplateFolderRelativePath: string[]
+  /** Typst 预览输出根目录相对路径 */
+  typstPreviewOutputFolderRelativePath: string[]
   /** Typst 图片渲染倍率（清晰度） */
   typstRenderScale: number
   /** Typst 图片背景是否透明 */
@@ -207,6 +217,9 @@ export const Config: Schema<Config> = Schema.intersect([
     useCommandPrefix: Schema.boolean()
       .default(true)
       .description('🔗 是否为功能指令添加 commandPrefix 前缀；关闭后仍保留单独的主指令，但健康检查、health-check 等功能指令将注册为顶级指令，多实例或存在同名指令时建议保持开启'),
+    enableAllTypstImagePreviewCommand: Schema.boolean()
+      .default(false)
+      .description('🖼️ 是否注册所有 Typst 图片预览管理指令；仅 authority 4 可执行，不影响 WebUI 预览功能'),
     serverLabel: Schema.string()
       .default('【神秘小服服1】')
       .description('🏷️ 服务器名称标记（显示在所有输出的标题中）'),
@@ -315,6 +328,12 @@ export const Config: Schema<Config> = Schema.intersect([
       .experimental()
       .disabled()
       .description('🧩 Typst 运行时模板文件夹相对路径；相对于 Koishi 根目录 ctx.baseDir，仅供查看'),
+    typstPreviewOutputFolderRelativePath: Schema.array(String)
+      .role('table')
+      .default([...TYPST_PREVIEW_OUTPUT_PARTS])
+      .experimental()
+      .disabled()
+      .description('🖼️ Typst 预览输出根目录相对路径；实例哈希及 live、dryrun 子目录由插件自动追加，仅供查看'),
     typstRenderScale: Schema.number()
       .default(2.33)
       .min(1)

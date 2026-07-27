@@ -9,22 +9,26 @@ import {
   resolveCommandScope,
 } from '../src/commands'
 
-function collectRegistrations(commandPrefix: string, useCommandPrefix = true) {
+function collectRegistrations(commandPrefix: string, useCommandPrefix = true, enablePreview = false) {
   const registrations: Array<{
     declaration: string
     primary: string
     description: string
     aliases: string[]
+    authority?: number
+    options: Array<[string, string]>
     action?: Function
   }> = []
   const ctx = {
     logger: { info: vi.fn() },
-    command: vi.fn((declaration: string, description: string) => {
+    command: vi.fn((declaration: string, description: string, commandConfig?: { authority?: number }) => {
       const registration = {
         declaration,
         primary: declaration.split(' ')[0],
         description,
         aliases: [] as string[],
+        authority: commandConfig?.authority,
+        options: [] as Array<[string, string]>,
       }
       registrations.push(registration)
       const chain: any = {
@@ -32,7 +36,10 @@ function collectRegistrations(commandPrefix: string, useCommandPrefix = true) {
           registration.aliases.push(name)
           return chain
         }),
-        option: vi.fn(() => chain),
+        option: vi.fn((name: string, syntax: string) => {
+          registration.options.push([name, syntax])
+          return chain
+        }),
         action: vi.fn((handler: Function) => {
           registration.action = handler
           return chain
@@ -48,11 +55,13 @@ function collectRegistrations(commandPrefix: string, useCommandPrefix = true) {
       whitelistBindingAuthority: 1,
       enableQuote: false,
       enableWaitingHint: true,
+      enableAllTypstImagePreviewCommand: enablePreview,
     } as any,
     apiClient: {} as any,
     rootCommand: scope.rootCommand,
     prefix: scope.featurePrefix,
     label: '测试服务器',
+    typstPreviewGenerator: { generate: vi.fn() } as any,
   })
   return { registrations, scope }
 }
@@ -61,7 +70,9 @@ describe('command registration', () => {
   it('registers the root command and every feature through the production entry', () => {
     const { registrations } = collectRegistrations('mcinfo1')
     const [root, ...features] = registrations
-    const expected = Object.values(COMMAND_NAMES).map(command => ({
+    const alwaysRegistered = Object.values(COMMAND_NAMES)
+      .filter(command => command !== COMMAND_NAMES.allTypstImagePreview)
+    const expected = alwaysRegistered.map(command => ({
       primary: primaryCommand('mcinfo1', command),
       aliases: [
         aliasCommand('mcinfo1', command),
@@ -82,7 +93,7 @@ describe('command registration', () => {
     expect(new Set(expected.map(({ primary }) => primary)).size).toBe(expected.length)
     const allAliases = expected.flatMap(({ aliases }) => aliases)
     expect(new Set(allAliases).size).toBe(allAliases.length)
-    Object.values(COMMAND_NAMES).forEach((command, index) => {
+    alwaysRegistered.forEach((command, index) => {
       expect(features[index].description).toContain(`（alias：${command.alias}）`)
       expect(features[index].description).toContain(command.emoji)
       expect(command.alias).toMatch(/^[a-z0-9]+(?:-[a-z0-9]+)+$/)
@@ -95,7 +106,9 @@ describe('command registration', () => {
   it('keeps the configured root while registering top-level feature commands', () => {
     const { registrations, scope } = collectRegistrations('mcinfo2', false)
     const [root, ...features] = registrations
-    const expected = Object.values(COMMAND_NAMES).map(command => ({
+    const expected = Object.values(COMMAND_NAMES)
+      .filter(command => command !== COMMAND_NAMES.allTypstImagePreview)
+      .map(command => ({
       primary: primaryCommand('', command),
       aliases: [
         aliasCommand('', command),
@@ -121,5 +134,25 @@ describe('command registration', () => {
       rootCommand: 'mcinfo1',
       featurePrefix: 'mcinfo1',
     })
+  })
+
+  it('registers the authority 4 preview command only when explicitly enabled', () => {
+    const disabled = collectRegistrations('mcinfo1', true, false)
+    expect(disabled.registrations.some(item => item.primary === 'mcinfo1.所有Typst图片预览')).toBe(false)
+    expect(disabled.registrations[0].action!({ session: {} }).attrs.content)
+      .not.toContain('所有Typst图片预览')
+
+    const enabled = collectRegistrations('mcinfo1', true, true)
+    const preview = enabled.registrations.find(item => item.primary === 'mcinfo1.所有Typst图片预览')
+    expect(preview).toMatchObject({
+      aliases: ['mcinfo1.all-typst-image-preview'],
+      authority: 4,
+      options: [[
+        'dryrun',
+        '-d, --dryrun, --dry-run 使用内置演示数据，不请求服务端 API',
+      ]],
+    })
+    expect(enabled.registrations[0].action!({ session: {} }).attrs.content)
+      .toContain('mcinfo1.所有Typst图片预览 [--dryrun] (all-typst-image-preview)')
   })
 })

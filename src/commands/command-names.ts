@@ -17,6 +17,7 @@ export const COMMAND_NAMES = {
   playerCount: { primary: '玩家数量', alias: 'player-count', emoji: '🔢' },
   playerNames: { primary: '玩家名列表', alias: 'player-names', emoji: '📝' },
   playerDetails: { primary: '玩家在线详情', alias: 'player-details', emoji: '👤' },
+  allTypstImagePreview: { primary: '所有Typst图片预览', alias: 'all-typst-image-preview', emoji: '🖼️' },
 } as const
 
 export const PLAYER_ACTIVITY_ADDITIONAL_ALIASES = [

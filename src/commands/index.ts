@@ -1,4 +1,5 @@
 import { registerButtonMenuCommand } from './button-menu'
+import { registerAllTypstImagePreviewCommand } from './all-typst-image-preview'
 import { registerExecuteCommand } from './execute-command'
 import { registerHealthCheckCommand } from './health-check'
 import { registerPlayerCountCommand } from './player-count'
@@ -34,4 +35,5 @@ export function registerCommands(registration: CommandRegistrationContext) {
   registerPlayerCountCommand(registration)
   registerPlayerNamesCommand(registration)
   registerPlayerDetailsCommand(registration)
+  registerAllTypstImagePreviewCommand(registration)
 }

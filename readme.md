@@ -44,6 +44,7 @@
 | 普通用户 | `玩家在线详情` | `player-details` | `mcinfo1.玩家在线详情 <玩家名>` | 查询指定在线玩家的身份、状态、环境、装备和网络质量 |
 | 普通用户 | `历史记录` | `player-history` | `mcinfo1.历史记录 [页码]` | 分页查询历史玩家 |
 | 普通用户 | `在线图` | `online-chart` | `mcinfo1.在线图 [yyyyMMdd] [--mode text\|image] [--dryrun]` | 查询上海时区单日每小时文字趋势或在线人数折线与进入次数柱形图，日期默认今天 |
+| 四级管理员（默认不注册） | `所有Typst图片预览` | `all-typst-image-preview` | `mcinfo1.所有Typst图片预览 [--dryrun]` | 批量生成全部 11 张真实或内置演示数据 Typst 预览图片 |
 | 普通用户 | `玩家数据统计` | `player-stats` | `mcinfo1.玩家数据统计 [玩家名]` | 默认查询当前账号绑定的玩家，也可公开查询指定玩家的累计统计 |
 | Koishi 权限等级 | `绑定玩家` | `bind-player` | `mcinfo1.绑定玩家 <玩家名>` | 绑定聊天账号与 Xbox 玩家；所需等级由 `whitelistBindingAuthority` 控制 |
 | Koishi 权限等级 | `解绑玩家` | `unbind-player` | `mcinfo1.解绑玩家` | 解除当前聊天账号的唯一玩家绑定 |
@@ -54,6 +55,27 @@
 
 带 `--mode` 选项的查询指令可通过 `--mode text` 或 `--mode image` 临时覆盖默认输出模式。`在线图` 遵循全局 `defaultOutputModes`，文字模式按小时汇总，图片模式生成趋势图；兼容 `在线折线图`、`在线柱形图`、`玩家活动` 和 `player-activity` alias。`查在线`、`历史记录` 和 `玩家数据统计` 使用各自固定输出流程。关闭 `useCommandPrefix` 后，功能指令将去掉 `mcinfo1.` 前缀并注册为顶级指令，单独的 `mcinfo1` 主指令仍会保留。
 
+<!-- TYPST_PREVIEW_GALLERY_START -->
+## Typst 图片预览
+
+以下图片由真实服务端数据生成，实例 `mcinfo1-f619e0f2`，服务器标记为 **神秘bds生存服捏**，生成时间为 `2026-07-27T01:49:33.035Z`。
+
+| 说明 | 图片 |
+| --- | --- |
+| **健康检查**<br>`health-check`<br>展示服务健康状态、时间戳和持续运行时间。 | [![健康检查](docs/images/preview/健康检查-health-check.png)](docs/images/preview/健康检查-health-check.png) |
+| **查在线**<br>`server-overview`<br>展示在线人数、TPS、查询延迟及服务端版本概览。 | [![查在线](docs/images/preview/查在线-server-overview.png)](docs/images/preview/查在线-server-overview.png) |
+| **历史记录**<br>`player-history`<br>展示历史玩家、累计游玩时间和最后在线时间。 | [![历史记录](docs/images/preview/历史记录-player-history.png)](docs/images/preview/历史记录-player-history.png) |
+| **在线图**<br>`online-chart`<br>展示在线人数折线、进入次数柱形和单日活动统计。 | [![在线图](docs/images/preview/在线图-online-chart.png)](docs/images/preview/在线图-online-chart.png) |
+| **玩家数据统计**<br>`player-stats`<br>展示指定玩家的历史游玩、挖掘、击杀和进入次数。 | [![玩家数据统计](docs/images/preview/玩家数据统计-player-stats.png)](docs/images/preview/玩家数据统计-player-stats.png) |
+| **玩家在线详情**<br>`player-details`<br>展示在线玩家的身份、状态、环境和网络快照。 | [![玩家在线详情](docs/images/preview/玩家在线详情-player-details.png)](docs/images/preview/玩家在线详情-player-details.png) |
+| **玩家列表**<br>`player-list`<br>展示当前在线玩家列表。 | [![玩家列表](docs/images/preview/玩家列表-player-list.png)](docs/images/preview/玩家列表-player-list.png) |
+| **玩家数量**<br>`player-count`<br>展示当前在线玩家数量。 | [![玩家数量](docs/images/preview/玩家数量-player-count.png)](docs/images/preview/玩家数量-player-count.png) |
+| **玩家名列表**<br>`player-names`<br>展示当前在线玩家名称列表。 | [![玩家名列表](docs/images/preview/玩家名列表-player-names.png)](docs/images/preview/玩家名列表-player-names.png) |
+| **服务器信息**<br>`server-details`<br>展示存档、在线人数以及 BDS、LeviLamina 和插件版本。 | [![服务器信息](docs/images/preview/服务器信息-server-details.png)](docs/images/preview/服务器信息-server-details.png) |
+| **服务器状态**<br>`server-status`<br>展示服务端与客户端版本、在线人数和协议状态。 | [![服务器状态](docs/images/preview/服务器状态-server-status.png)](docs/images/preview/服务器状态-server-status.png) |
+
+<!-- TYPST_PREVIEW_GALLERY_END -->
+
 ## 配置表格
 
 ### 🏷️ 指令与标识配置
@@ -62,6 +84,7 @@
 | --- | --- | --- | --- |
 | `commandPrefix` | 字符串 | `mcinfo1` | 主指令名称；开启功能前缀时也用于组成 `mcinfo1.健康检查` 等指令 |
 | `useCommandPrefix` | 布尔值 | `true` | 是否为功能指令添加 `commandPrefix`；关闭后功能指令注册为顶级名称 |
+| `enableAllTypstImagePreviewCommand` | 布尔值 | `false` | 是否注册四级权限的“所有 Typst 图片预览”管理指令；不影响 WebUI 画廊 |
 | `serverLabel` | 字符串 | `【神秘小服服1】` | 显示在文字、图片和 QQ Markdown 标题中的服务器名称 |
 
 ### 🔌 服务器连接配置
@@ -107,6 +130,7 @@
 | `typstEmojiFontPath` | 路径 | `data/fonts/NotoColorEmoji.ttf` | Emoji 字体路径，默认位于 Koishi 根目录下的字体目录 |
 | `typstFontFamily` | 字符串 | `LXGW WenKai Mono` | Typst 使用的字体族名称，必须与字体内部名称一致 |
 | `typstTemplateFolderRelativePath` | 只读路径列表 | `["data", "assets", "ll-serverinfo-rest-client", "runtime", "templates"]` | 实验性只读项，仅用于查看相对于 `ctx.baseDir` 的模板路径片段 |
+| `typstPreviewOutputFolderRelativePath` | 只读路径列表 | `["cache", "ll-serverinfo-rest-client", "typst-preview"]` | 预览输出固定根目录；实例哈希及 `live`、`dryrun` 子目录由插件追加 |
 | `typstRenderScale` | 数字 | `2.33` | 图片渲染倍率，范围为 `1` 至 `10` |
 | `typstTransparentBackground` | 布尔值 | `false` | 是否输出透明背景 PNG；关闭时使用页面背景色 |
 | `typstPageBgColor` | 颜色 | `#f2f6f1` | 页面背景色 |
@@ -267,6 +291,16 @@ data/assets/ll-serverinfo-rest-client/runtime/templates
 - 旧版 `player-detail.typ` 会单独备份为 `player-detail.typ.backup-YYYYMMDD-HHmmss`，再替换为兼容 API v2 的模板。
 - `typstTemplateFolderRelativePath` 是实验性只读项，仅用于查看相对于 `ctx.baseDir` 的路径片段。
 - 插件详情页提供“恢复默认模板”按钮，操作需要 Koishi authority 4，并在执行前进行二次确认。
+- 插件详情页同时提供“生成真实预览”和“生成演示预览”按钮；authority 4 管理员可以在横向画廊中查看全部 11 张图片。
+- 目标模式没有预览图片时会直接生成；已有图片时浏览器会先显示覆盖确认对话框，取消后不会发起生成请求。
+- 点击画廊图片或“图片”按钮会复制原始全分辨率 PNG；每张卡片另有“路径”和“信息”按钮，分别复制服务器绝对路径和格式化 JSON 元数据。
+- PNG 剪贴板需要 HTTPS、localhost、Koishi Desktop 等安全上下文及浏览器 `ClipboardItem` 支持；不满足条件时只显示错误，不会自动下载文件。
+- 真实预览使用当前实例的 `serverUrl`、API 前缀与 token；玩家在线详情选择第一名在线玩家，玩家统计优先选择第一名在线玩家并回退到历史记录第一页第一名玩家。
+- 真实模式没有在线玩家时会跳过玩家在线详情并记录原因；演示模式完全不请求服务端 API，所有图片都会标记 `DRY RUN · 内置演示数据`。
+- `所有Typst图片预览` 指令默认不注册；开启 `enableAllTypstImagePreviewCommand` 后可使用 `-d`、`--dryrun` 或 `--dry-run` 生成演示预览，聊天指令要求 authority 4，WebUI 预览接口不额外限制 Console 权限。
+- 每个实例使用 `commandPrefix` 和 SHA-256 前八位组成稳定目录键，避免 `mcinfo1`、`mcinfo2` 等可复用实例相互覆盖。
+- 预览分别写入 `cache/ll-serverinfo-rest-client/typst-preview/<实例键>/live` 和 `dryrun`；每个模板只保留固定名称的一张 PNG，并通过 staging 目录整轮替换。
+- 每轮输出包含 `metadata.json`，记录生成时间、成功、跳过、失败、所选玩家及每张图片的绝对路径、MIME、字节数、宽高和 SHA-256。
 - 恢复前会将原目录完整备份为 `templates-backup-YYYYMMDD-HHmmss`，恢复后清理 Typst 编译缓存。
 - 备份不会自动删除，可在确认新模板正常后手动整理；直接修改模板仅建议熟悉 Typst 的用户使用。
 

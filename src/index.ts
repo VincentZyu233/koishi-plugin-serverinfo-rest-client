@@ -8,6 +8,7 @@ import { checkAndDownloadFonts } from './font'
 import { applyQQImageServer } from './qq'
 import { ensureTemplateAssets, getRuntimeTemplateDir } from './template'
 import { resetTypstTemplateCaches } from './typst'
+import { TypstPreviewGenerator } from './preview'
 import { formatErrorForLog, logInfo } from './logger'
 
 export const name = 'serverinfo-rest-client'
@@ -26,7 +27,6 @@ export { usage } from './usage'
 
 export async function apply(ctx: Context, cfg: Config) {
   await ensureTemplateAssets(ctx, cfg)
-  applyTemplateConsole(ctx, cfg, resetTypstTemplateCaches)
   await checkAndDownloadFonts(ctx, cfg).catch((error) => {
     logInfo(
       ctx,
@@ -37,6 +37,8 @@ export async function apply(ctx: Context, cfg: Config) {
   })
 
   const apiClient = createApiClient(ctx, cfg)
+  const typstPreviewGenerator = new TypstPreviewGenerator(ctx, cfg, apiClient)
+  applyTemplateConsole(ctx, cfg, resetTypstTemplateCaches, typstPreviewGenerator)
   applyQQImageServer(ctx, cfg)
   logInfo(ctx, cfg, 'serverinfo-rest-client 已启动', [
     `Typst 运行时模板目录: ${getRuntimeTemplateDir(ctx.baseDir, cfg.typstTemplateFolderRelativePath)}`,
@@ -57,5 +59,6 @@ export async function apply(ctx: Context, cfg: Config) {
     rootCommand,
     prefix,
     label,
+    typstPreviewGenerator,
   })
 }
