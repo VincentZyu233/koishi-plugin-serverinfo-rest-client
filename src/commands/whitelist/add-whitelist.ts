@@ -48,7 +48,7 @@ export function registerAddWhitelistCommand({
             playerName,
             requester: requesterId(session),
             force: Boolean(options.force),
-          }, true)
+          }, { admin: true })
           const state = data.forced ? '已强制创建绑定' : (data.created ? '已创建绑定' : '绑定已经存在')
           const replacements = (data.replacedBindings || []).map((binding) =>
             `\n- 已替换：${maskIdentifier(binding.userId)} ↔ ${binding.playerName}`,

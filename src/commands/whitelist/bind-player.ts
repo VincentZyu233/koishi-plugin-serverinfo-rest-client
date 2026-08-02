@@ -33,7 +33,7 @@ export function registerBindPlayerCommand({
             userId: session.userId,
             channelId: session.channelId,
             playerName,
-          }, true)
+          }, { admin: true })
           const state = data.created ? '绑定成功' : '已经绑定'
           return withQuote(session, config, `${state}：${data.binding.playerName}${formatAllowlistResult(data)}`)
         } catch (error) {

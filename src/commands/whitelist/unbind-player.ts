@@ -29,7 +29,7 @@ export function registerUnbindPlayerCommand({
             platform: session.platform,
             selfId,
             userId: session.userId,
-          }, true)
+          }, { admin: true })
           return withQuote(session, config, `已解除与 ${data.binding.playerName} 的玩家绑定${formatAllowlistResult(data)}`)
         } catch (error) {
           logInfo(ctx, config, '[ERROR] 解绑玩家失败', formatErrorForLog(error))

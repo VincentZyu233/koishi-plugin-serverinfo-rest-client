@@ -29,7 +29,7 @@ export function registerExecuteCommand({
           const data = await apiClient.post<CommandExecutionResponse>('/admin/command', {
             command,
             requester: `${session.platform}:${session.userId}`,
-          }, true)
+          }, { admin: true })
           const text = `${data.success ? '执行成功' : '执行失败'}：${data.command}\n${data.output || '服务器没有返回输出'}`
           return withQuote(session, config, text)
         } catch (error) {

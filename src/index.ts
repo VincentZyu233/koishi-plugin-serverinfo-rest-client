@@ -42,7 +42,9 @@ export async function apply(ctx: Context, cfg: Config) {
   applyQQImageServer(ctx, cfg)
   logInfo(ctx, cfg, 'serverinfo-rest-client 已启动', [
     `Typst 运行时模板目录: ${getRuntimeTemplateDir(ctx.baseDir, cfg.typstTemplateFolderRelativePath)}`,
-    `服务器地址: ${apiClient.getBaseUrl()}`,
+    `主服务器地址: ${apiClient.getBaseUrl()}`,
+    `服务器地址池: ${apiClient.getBaseUrls().join(' -> ')}`,
+    `地址选择策略: ${cfg.serverUrlSelectionStrategy}`,
     `API 地址: ${apiClient.getApiBase()}`,
   ].join('\n'))
 

@@ -9,6 +9,12 @@ import { createQQConfigSchema, QQConfig } from './qq/config'
  */
 export type OutputMode = 'text' | 'typst-image'
 export type TokenSendMode = 'param' | 'header' | 'both'
+export type ServerUrlSelectionStrategy =
+  | 'forward'
+  | 'reverse'
+  | 'last-success'
+  | 'round-robin'
+  | 'random'
 
 export const TYPST_PREVIEW_OUTPUT_PARTS = [
   'cache',
@@ -87,6 +93,10 @@ export interface Config extends QQConfig {
   // ========== 🔌 服务器连接配置 ==========
   /** REST 服务基础 URL */
   serverUrl: string
+  /** REST 服务备用 URL 列表 */
+  fallbackServerUrlList: string[]
+  /** REST 服务地址选择策略 */
+  serverUrlSelectionStrategy: ServerUrlSelectionStrategy
   /** 访问令牌 */
   token: string
   /** 只读访问令牌发送方式 */
@@ -99,6 +109,12 @@ export interface Config extends QQConfig {
   apiPrefix: string
   /** 请求超时时间（毫秒） */
   timeout: number
+  /** 可安全重试请求的最大尝试次数 */
+  requestMaxAttempts: number
+  /** 请求重试间隔（毫秒） */
+  requestRetryDelayMs: number
+  /** 整个请求重试过程的总时间预算（毫秒） */
+  requestTotalTimeoutMs: number
 
   // ========== 🎯 指令细节设置 ==========
   /** 是否隐藏玩家坐标 */
@@ -229,6 +245,22 @@ export const Config: Schema<Config> = Schema.intersect([
     serverUrl: Schema.string()
       .default('http://127.0.0.1:60202')
       .description('🌐 REST 服务基础 URL（包含 http:// 或 https://、主机和端口）'),
+    fallbackServerUrlList: Schema.array(
+      Schema.string().role('link'),
+    )
+      .role('table')
+      .default([])
+      .description('🛟 备用 REST 服务基础 URL 列表；与主地址组成同一服务的入口池，空值和重复地址会自动忽略'),
+    serverUrlSelectionStrategy: Schema.union([
+      Schema.const('forward' as const).description('➡️ [forward] 正序：每次从主地址开始'),
+      Schema.const('reverse' as const).description('⬅️ [reverse] 倒序：每次从最后一个备用地址开始'),
+      Schema.const('last-success' as const).description('✅ [last-success] 最近成功：优先使用当前实例内存中最近成功的地址'),
+      Schema.const('round-robin' as const).description('🔄 [round-robin] 轮询：每次请求轮换起始地址'),
+      Schema.const('random' as const).description('🎲 [random] 随机：每轮打乱地址且同轮不重复'),
+    ])
+      .role('radio')
+      .default('last-success')
+      .description('🧭 REST 服务地址选择策略；最近成功地址和轮询游标仅保存在当前插件实例内存中'),
     token: Schema.string()
       .default('')
       .role('secret')
@@ -250,7 +282,25 @@ export const Config: Schema<Config> = Schema.intersect([
       .default(10000)
       .min(1000)
       .max(60000)
-      .description('⏱️ 请求超时时间（毫秒）'),
+      .description('⏱️ 单次 HTTP 请求尝试的超时时间（毫秒）'),
+    requestMaxAttempts: Schema.number()
+      .default(5)
+      .min(1)
+      .max(10)
+      .step(1)
+      .description('🔁 可安全重试请求的最大尝试次数，包含首次请求；写入操作始终只发送一次'),
+    requestRetryDelayMs: Schema.number()
+      .default(333)
+      .min(0)
+      .max(10000)
+      .step(1)
+      .description('⏲️ 可安全重试请求每次失败后、下一次尝试前的等待时间（毫秒）'),
+    requestTotalTimeoutMs: Schema.number()
+      .default(25000)
+      .min(1000)
+      .max(300000)
+      .step(1000)
+      .description('⌛ 可安全重试请求从首次尝试到最终结束的总时间预算（毫秒，包含重试等待）'),
   }).description('🔌 服务器连接配置'),
 
   Schema.object({

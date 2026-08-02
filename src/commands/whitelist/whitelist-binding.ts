@@ -28,7 +28,11 @@ export function registerWhitelistBindingCommand({
       if (!config.adminToken) return withQuote(session, config, '尚未配置管理 API 令牌，无法查询白名单绑定')
       return runWithWaitingHint(ctx, session, config, async () => {
         try {
-          const data = await apiClient.post<WhitelistStateResponse>('/whitelist/state', { playerName }, true)
+          const data = await apiClient.post<WhitelistStateResponse>(
+            '/whitelist/state',
+            { playerName },
+            { admin: true, retryable: true },
+          )
           if (!data.bound || !data.binding) {
             return withQuote(session, config, `玩家 ${data.playerName} 当前未绑定聊天账号`)
           }

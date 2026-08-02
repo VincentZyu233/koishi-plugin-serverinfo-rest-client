@@ -89,7 +89,7 @@ describe('player statistics command', () => {
 
     expect(api.post).toHaveBeenCalledWith('/players/stats/bound', {
       platform: 'qq', selfId: 'bot-1', userId: 'user-1',
-    }, true)
+    }, { admin: true, retryable: true })
     expect(api.get).not.toHaveBeenCalled()
     expect(result).toContain('玩家数据：Steve')
   })

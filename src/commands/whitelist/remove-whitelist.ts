@@ -31,7 +31,7 @@ export function registerRemoveWhitelistCommand({
           const data = await apiClient.post<WhitelistRemovalResponse>('/whitelist/remove', {
             playerName,
             requester: requesterId(session),
-          }, true)
+          }, { admin: true })
           return withQuote(
             session,
             config,

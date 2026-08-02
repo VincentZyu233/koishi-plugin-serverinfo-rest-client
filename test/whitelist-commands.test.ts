@@ -65,7 +65,7 @@ describe('whitelist commands', () => {
     const result = await action({ session: session(true) })
     expect(api.post).toHaveBeenCalledWith('/whitelist/unbind', {
       platform: 'qq', selfId: 'bot-1', userId: 'user-1',
-    }, true)
+    }, { admin: true })
     expect(result).toBe('已解除与 Steve 的玩家绑定\n提示：BDS allowlist 同步已关闭，本次仅修改账号绑定')
   })
 
@@ -105,7 +105,7 @@ describe('whitelist commands', () => {
       playerName: 'Steve',
       requester: 'qq:bot-1:admin-1:group-1',
       force: true,
-    }, true)
+    }, { admin: true })
     expect(result).toContain('已强制创建绑定')
     expect(result).toContain('old-...r-id')
   })
@@ -129,7 +129,7 @@ describe('whitelist commands', () => {
       playerName: 'Alex',
       userId: 'target-user-id',
       force: false,
-    }), true)
+    }), { admin: true })
   })
 
   it('shows a masked binding state to an administrator', async () => {
@@ -144,7 +144,11 @@ describe('whitelist commands', () => {
     const action = actions.get('mcinfo1.查询白名单绑定 <playerName:text>')!
     const result = await action({ session: session(false, 'admin-1') }, 'Steve')
 
-    expect(api.post).toHaveBeenCalledWith('/whitelist/state', { playerName: 'Steve' }, true)
+    expect(api.post).toHaveBeenCalledWith(
+      '/whitelist/state',
+      { playerName: 'Steve' },
+      { admin: true, retryable: true },
+    )
     expect(result).toContain('DEF7...817D')
     expect(result).not.toContain('DEF7AD72F48937DF174643A37ED8817D')
   })
@@ -157,7 +161,7 @@ describe('whitelist commands', () => {
 
     expect(api.post).toHaveBeenCalledWith('/whitelist/remove', {
       playerName: 'Steve', requester: 'qq:bot-1:admin-1:group-1',
-    }, true)
+    }, { admin: true })
     expect(result).toContain('已移除绑定')
   })
 })

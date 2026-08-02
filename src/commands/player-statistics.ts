@@ -40,7 +40,7 @@ export function registerPlayerStatisticsCommand({
               platform: session.platform,
               selfId,
               userId: session.userId,
-            }, true)
+            }, { admin: true, retryable: true })
           }
           const image = await renderTypstTemplate(ctx, config, 'playerStats', {
             label: config.serverLabel,

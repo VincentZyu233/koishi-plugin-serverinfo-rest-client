@@ -29,6 +29,21 @@ export function stringifyForLog(value: unknown): string {
 }
 
 export function formatErrorForLog(error: unknown): string {
-  if (error instanceof Error) return error.stack || error.message
-  return stringifyForLog(error)
+  const parts: string[] = []
+  const visited = new Set<unknown>()
+  let current = error
+  while (current !== undefined && current !== null && !visited.has(current)) {
+    visited.add(current)
+    if (current instanceof Error) {
+      const code = typeof (current as Error & { code?: unknown }).code === 'string'
+        ? ` [${(current as Error & { code: string }).code}]`
+        : ''
+      parts.push(`${current.stack || `${current.name}: ${current.message}`}${code}`)
+      current = (current as Error & { cause?: unknown }).cause
+      continue
+    }
+    parts.push(stringifyForLog(current))
+    break
+  }
+  return parts.join('\nCaused by:\n') || stringifyForLog(error)
 }

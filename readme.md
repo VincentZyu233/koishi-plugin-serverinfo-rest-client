@@ -92,12 +92,17 @@
 | 配置项 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
 | `serverUrl` | 字符串 | `http://127.0.0.1:60202` | LeviLamina `serverinfo-rest` HTTP 服务基础地址 |
+| `fallbackServerUrlList` | 字符串列表 | `[]` | 同一 REST 服务的备用入口；空值、重复地址及非 HTTP(S) 地址会自动忽略 |
+| `serverUrlSelectionStrategy` | 枚举 | `last-success` | 地址选择策略，可选 `forward`、`reverse`、`last-success`、`round-robin` 或 `random` |
 | `token` | 密钥 | 空 | 状态、玩家和历史数据等只读 API 的访问令牌 |
 | `tokenSendMode` | 枚举 | `header` | 只读令牌发送方式，可选 `param`、`header` 或 `both` |
 | `adminToken` | 密钥 | 空 | 命令执行、账号绑定和白名单管理 API 的管理令牌 |
 | `adminTokenSendMode` | 枚举 | `header` | 管理令牌发送方式，可选 `param`、`header` 或 `both` |
 | `apiPrefix` | 字符串 | `/api/v2` | API v2 路径前缀，必须与服务端一致 |
-| `timeout` | 数字 | `10000` | HTTP 请求超时毫秒数，范围为 `1000` 至 `60000` |
+| `timeout` | 数字 | `10000` | 单次 HTTP 请求尝试的超时毫秒数，范围为 `1000` 至 `60000` |
+| `requestMaxAttempts` | 数字 | `5` | 可安全重试请求的最大尝试次数，包含首次请求，范围为 `1` 至 `10` |
+| `requestRetryDelayMs` | 数字 | `333` | 每次失败后、下一次安全重试前的等待毫秒数 |
+| `requestTotalTimeoutMs` | 数字 | `25000` | 整个安全重试过程的总时间预算，包含请求和等待时间 |
 
 ### 🎯 指令细节设置
 
@@ -168,10 +173,22 @@
 >
 > 1. 安装并启动 BDS、LeviLamina 和配套的 `serverinfo-rest` 服务端插件，并确认健康检查接口可以访问。
 > 2. 将 `serverUrl` 填为 HTTP 服务地址，例如 `http://127.0.0.1:60202`。
-> 3. 保持 `apiPrefix` 与服务端一致；API v2 默认使用 `/api/v2`，本客户端不兼容 API v1。
-> 4. 服务端启用只读认证时填写 `token`；使用绑定、白名单或命令管理功能时还需要填写 `adminToken`。
-> 5. 按需设置 `commandPrefix`、`useCommandPrefix` 和 `serverLabel`；多个实例可以分别使用 `mcinfo1`、`mcinfo2`。
-> 6. Koishi 与 BDS 不在同一台机器时，确认服务端监听地址、防火墙和网络路由允许 Koishi 访问对应端口。
+> 3. 同一服务存在多个公网入口时，将其他完整基础地址加入 `fallbackServerUrlList`；不要填写其他 Minecraft 服务器。
+> 4. 保持 `apiPrefix` 与服务端一致；API v2 默认使用 `/api/v2`，本客户端不兼容 API v1。
+> 5. 服务端启用只读认证时填写 `token`；使用绑定、白名单或命令管理功能时还需要填写 `adminToken`。
+> 6. 按需设置 `commandPrefix`、`useCommandPrefix` 和 `serverLabel`；多个实例可以分别使用 `mcinfo1`、`mcinfo2`。
+> 7. Koishi 与 BDS 不在同一台机器时，确认服务端监听地址、防火墙和网络路由允许 Koishi 访问对应端口。
+
+> **🛟 多地址故障转移与安全重试**
+> `serverUrl` 始终是地址池中的主地址，备用列表只为同一个 REST 服务提供其他入口。默认 `last-success` 会优先使用当前插件实例内存中最近成功的地址；插件重载后重新从主地址开始。
+
+- `forward` 每次按主地址到备用地址的正序尝试；`reverse` 每次从最后一个备用地址开始。
+- `last-success` 首次使用正序，之后从最近成功地址开始；`round-robin` 每条逻辑请求轮换一次起始地址。
+- `random` 按轮洗牌，同一轮不会重复地址；地址用完后才会开始下一轮。
+- 所有 GET 以及显式标记为只读的 POST 可以重试；执行命令、绑定、解绑和白名单写入 POST 只发送一次，避免响应丢失时重复执行。
+- 网络错误、单次超时、`HTTP 408`、`425`、`429` 和 `5xx` 可以重试；其他 `4xx` 会直接返回，避免掩盖参数或令牌错误。
+- `requestMaxAttempts` 和 `requestTotalTimeoutMs` 都是硬上限，任意一个先达到都会停止；最后一次失败后不会继续等待重试间隔。
+- 固定公网 IP 可能随端口映射服务调整而变化，备用列表属于可用性兜底，长期跨网连接仍建议使用稳定隧道或专线。
 
 > **🔐 Token、权限与白名单**
 > 推荐为只读接口和管理接口使用不同的随机令牌，并优先通过 Bearer Header 发送。
@@ -295,7 +312,7 @@ data/assets/ll-serverinfo-rest-client/runtime/templates
 - 目标模式没有预览图片时会直接生成；已有图片时浏览器会先显示覆盖确认对话框，取消后不会发起生成请求。
 - 点击画廊图片或“图片”按钮会复制原始全分辨率 PNG；每张卡片另有“路径”和“信息”按钮，分别复制服务器绝对路径和格式化 JSON 元数据。
 - PNG 剪贴板需要 HTTPS、localhost、Koishi Desktop 等安全上下文及浏览器 `ClipboardItem` 支持；不满足条件时只显示错误，不会自动下载文件。
-- 真实预览使用当前实例的 `serverUrl`、API 前缀与 token；玩家在线详情选择第一名在线玩家，玩家统计优先选择第一名在线玩家并回退到历史记录第一页第一名玩家。
+- 真实预览使用当前实例的 REST 地址池、选择策略、API 前缀与 token；玩家在线详情选择第一名在线玩家，玩家统计优先选择第一名在线玩家并回退到历史记录第一页第一名玩家。
 - 真实模式没有在线玩家时会跳过玩家在线详情并记录原因；演示模式完全不请求服务端 API，所有图片都会标记 `DRY RUN · 内置演示数据`。
 - `所有Typst图片预览` 指令默认不注册；开启 `enableAllTypstImagePreviewCommand` 后可使用 `-d`、`--dryrun` 或 `--dry-run` 生成演示预览，聊天指令要求 authority 4，WebUI 预览接口不额外限制 Console 权限。
 - 每个实例使用 `commandPrefix` 和 SHA-256 前八位组成稳定目录键，避免 `mcinfo1`、`mcinfo2` 等可复用实例相互覆盖。
